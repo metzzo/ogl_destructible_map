@@ -21,7 +21,6 @@ class MeshResource : public IResource
 	Material material_;
 
 public:
-	MeshResource();
 	MeshResource(float *vertices, float *normals, float *uvs, int num_vertices, unsigned int *indices, int num_indices, const Material& material);
 	~MeshResource();
 

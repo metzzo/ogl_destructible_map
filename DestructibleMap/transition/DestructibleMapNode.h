@@ -1,15 +1,22 @@
 #pragma once
-#include "Node.h"
 #include "clipper.hpp"
+#include "TransformationNode.h"
+#include "IDrawable.h"
+#include "MeshResource.h"
 
+class MeshResource;
 class DestructibleMapNode :
-	public Node
+	public TransformationNode,
+	public IDrawable
 {
 	glm::mat4 trafo_;
 	glm::mat4 itrafo_;
+	std::vector<glm::vec2> vertices_;
 
 	void load(ClipperLib::Paths poly_tree);
 public:
+	MeshResource* total_map_resource_;
+
 	explicit DestructibleMapNode(const std::string& name);
 	~DestructibleMapNode();
 
@@ -18,6 +25,8 @@ public:
 
 	void init(RenderingEngine* rendering_engine) override;
 
-	void apply_transformation(const glm::mat4& transformation, const glm::mat4& inverse_transformation) override;
+	std::vector<IDrawable*> get_drawables() override;
+	
+	void draw(ShaderResource* shader) const override;
 };
 

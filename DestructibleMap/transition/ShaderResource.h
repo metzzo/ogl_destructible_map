@@ -3,6 +3,7 @@
 #include <string>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include "DestructibleMapNode.h"
 class RenderingNode;
 class GeometryNode;
 
@@ -29,5 +30,6 @@ public:
 	void init() override;
 	virtual void set_camera_uniforms(const RenderingNode* node) = 0;
 	virtual void set_model_uniforms(const GeometryNode* node) = 0;
+	virtual void set_model_uniforms(const DestructibleMapNode* node) = 0;
 };
 

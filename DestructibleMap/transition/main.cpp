@@ -22,10 +22,12 @@ int main()
 		engine->get_viewport(),
 		glm::perspective(glm::radians(60.0f), float(WINDOW_WIDTH) / float(WINDOW_HEIGHT), 0.1f, 100.0f)		
 	);
-	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 5, 0), glm::vec3(-10, 3, 0), glm::vec3(0, 1, 0)));
+	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 	root->add_node(cam);
 	
 	auto map = new DestructibleMapNode("map");
+	auto m = glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0));
+	map->set_transformation(m);
 	map->load_sample();
 	root->add_node(map);
 

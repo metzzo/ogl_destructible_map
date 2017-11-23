@@ -66,6 +66,35 @@ void MainShader::set_model_uniforms(const GeometryNode* node) {
 	glUniform3fv(this->material_specular_color_, 1, &material.get_specular_color()[0]);
 }
 
+void MainShader::set_model_uniforms(const DestructibleMapNode* node)
+{
+	//Check Existance of Uniforms
+	assert(this->model_uniform_ >= 0);
+	assert(this->material_diffuse_tex_uniform_ >= 0);
+	assert(this->material_has_diffuse_tex_uniform_ >= 0);
+	//Give Model to Shader
+	glUniformMatrix4fv(this->model_uniform_, 1, GL_FALSE, &node->get_transformation()[0][0]);
+	//Bind Texture and give it to Shader 
+	auto material = node->total_map_resource_->get_material();
+	const TextureResource* texture = material.get_texture();
+	if (texture != nullptr) {
+		texture->bind(0);
+		glUniform1i(this->material_has_diffuse_tex_uniform_, 1);
+		glUniform1i(this->material_diffuse_tex_uniform_, 0);
+		glUniform1f(this->material_shininess_, material.get_shininess());
+	}
+	else {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glUniform1i(this->material_has_diffuse_tex_uniform_, 0);
+	}
+	glUniform3fv(this->material_ambient_color_, 1, &material.get_ambient_color()[0]);
+	glUniform3fv(this->material_diffuse_color_, 1, &material.get_diffuse_color()[0]);
+	glUniform3fv(this->material_specular_color_, 1, &material.get_specular_color()[0]);
+
+}
+
 void MainShader::set_light_uniforms(const std::vector<LightNode*>& light_nodes)
 {
 	auto light_index = 0;

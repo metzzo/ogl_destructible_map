@@ -55,7 +55,7 @@ void RenderingEngine::run()
 		glfwWindowHint(GLFW_REFRESH_RATE, refresh_rate_);
 	}
 
-	const auto window = glfwCreateWindow(this->viewport_.x, this->viewport_.y, "Transition", monitor, nullptr);
+	const auto window = glfwCreateWindow(this->viewport_.x, this->viewport_.y, "Destructible Map", monitor, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;

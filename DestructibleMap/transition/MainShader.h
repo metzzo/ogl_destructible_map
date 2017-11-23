@@ -40,6 +40,7 @@ public:
 	
 	void set_camera_uniforms(const RenderingNode* node) override;
 	void set_model_uniforms(const GeometryNode* node) override;
+	void set_model_uniforms(const DestructibleMapNode* node) override;
 	void set_light_uniforms(const std::vector<LightNode*>& light_nodes) override;
 };
 
