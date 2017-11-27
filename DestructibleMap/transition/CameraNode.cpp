@@ -18,7 +18,7 @@ void CameraNode::before_render(const std::vector<LightNode*>& light_nodes) const
 	const auto shader = this->get_shader();
 	shader->use();
 	shader->set_light_uniforms(light_nodes);
-	shader->set_camera_uniforms(this);
+	shader->set_camera_uniforms(this, nullptr);
 }
 
 MainShader* CameraNode::get_shader() const {

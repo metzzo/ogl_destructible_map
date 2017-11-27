@@ -29,7 +29,7 @@ MainShader::MainShader() : ShaderResource("assets/shaders/main_shader.vs", "asse
 }
 
 
-void MainShader::set_camera_uniforms(const RenderingNode* node) {
+void MainShader::set_camera_uniforms(const RenderingNode* node, void * param) {
 	assert(this->view_uniform_ >= 0);
 	assert(this->projection_uniform_ >= 0);
 	assert(this->view_pos_uniform_ >= 0);
@@ -39,7 +39,7 @@ void MainShader::set_camera_uniforms(const RenderingNode* node) {
 	glUniform3fv(this->view_pos_uniform_, 1, &node->get_position()[0]);
 }
 
-void MainShader::set_model_uniforms(const GeometryNode* node) {
+void MainShader::set_model_uniforms(const GeometryNode* node, void * param) {
 	//Check Existance of Uniforms
 	assert(this->model_uniform_ >= 0);
 	assert(this->material_diffuse_tex_uniform_ >= 0);
@@ -66,7 +66,7 @@ void MainShader::set_model_uniforms(const GeometryNode* node) {
 	glUniform3fv(this->material_specular_color_, 1, &material.get_specular_color()[0]);
 }
 
-void MainShader::set_model_uniforms(const DestructibleMapNode* node)
+void MainShader::set_model_uniforms(const DestructibleMapNode* node, void * param)
 {
 	//Check Existance of Uniforms
 	assert(this->model_uniform_ >= 0);
@@ -75,7 +75,7 @@ void MainShader::set_model_uniforms(const DestructibleMapNode* node)
 	//Give Model to Shader
 	glUniformMatrix4fv(this->model_uniform_, 1, GL_FALSE, &node->get_transformation()[0][0]);
 	//Bind Texture and give it to Shader 
-	auto material = node->total_map_resource_->get_material();
+	auto material = (static_cast<bool*>(param)[0] ? node->point_distribution_resource_ : node->total_map_resource_)->get_material();
 	const TextureResource* texture = material.get_texture();
 	if (texture != nullptr) {
 		texture->bind(0);

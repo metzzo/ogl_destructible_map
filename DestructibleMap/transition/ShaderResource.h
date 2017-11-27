@@ -28,8 +28,8 @@ public:
 
 	int get_resource_id() const override;
 	void init() override;
-	virtual void set_camera_uniforms(const RenderingNode* node) = 0;
-	virtual void set_model_uniforms(const GeometryNode* node) = 0;
-	virtual void set_model_uniforms(const DestructibleMapNode* node) = 0;
+	virtual void set_camera_uniforms(const RenderingNode* node, void * param = nullptr) = 0;
+	virtual void set_model_uniforms(const GeometryNode* node, void * param = nullptr) = 0;
+	virtual void set_model_uniforms(const DestructibleMapNode* node, void * param = nullptr) = 0;
 };
 
