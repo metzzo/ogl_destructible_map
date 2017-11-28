@@ -38,10 +38,11 @@ public:
 
 	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
 
+	void simplify();
+
 	void draw() const;
 	void init(RenderingEngine *engine);
 
-	int count();
 	void remove();
 
 	friend DestructibleMapNode;
@@ -77,5 +78,7 @@ public:
 	
 	void draw(ShaderResource* shader) const override;
 	void remove_rect(const glm::vec2 &begin, const glm::vec2 &end);
+
+	void update_quadtree_representation();
 };
 

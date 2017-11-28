@@ -18,6 +18,45 @@ MeshResource::MeshResource(float *vertices, float *normals, float *uvs, const in
 	this->material_ = material;
 }
 
+MeshResource::MeshResource(std::vector<glm::vec2> vertices, const Material& material)
+{
+	const auto global_vertices = new float[vertices.size() * 3];
+	const auto global_normal = new float[vertices.size() * 3];
+	const auto global_uv = new float[vertices.size() * 2];
+	auto i = 0;
+	for (auto& vertex : vertices)
+	{
+		global_uv[i * 2] = 0;
+		global_uv[i * 2 + 1] = 0;
+
+		global_normal[i * 3] = 0;
+		global_normal[i * 3 + 1] = 0;
+		global_normal[i * 3 + 2] = 0;
+
+
+		global_vertices[i * 3] = vertex.x;
+		global_vertices[i * 3 + 1] = vertex.y;
+		global_vertices[i * 3 + 2] = 0;
+
+		i++;
+	}
+
+	this->vao_ = -1;
+	this->vbo_positions_ = -1;
+	this->vbo_normals_ = -1;
+	this->vbo_uvs_ = -1;
+	this->ebo_ = -1;
+
+	this->vertices_ = global_vertices;
+	this->normals_ = global_normal;
+	this->uvs_ = global_uv;
+	this->num_vertices_ = vertices.size();
+	this->indices_ = nullptr;
+	this->num_indices_ = 0;
+	this->material_ = material;
+}
+
+
 MeshResource::~MeshResource()
 {
 	if (this->vao_ != -1) {

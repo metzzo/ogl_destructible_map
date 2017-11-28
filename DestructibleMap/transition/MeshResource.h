@@ -2,6 +2,7 @@
 #include "IResource.h"
 #include "glheaders.h"
 #include "Material.h"
+#include <vector>
 
 class MeshResource : public IResource
 {
@@ -22,6 +23,7 @@ class MeshResource : public IResource
 
 public:
 	MeshResource(float *vertices, float *normals, float *uvs, int num_vertices, unsigned int *indices, int num_indices, const Material& material);
+	MeshResource(std::vector<glm::vec2> vertices, const Material &material);
 	~MeshResource();
 
 	int get_resource_id() const override;

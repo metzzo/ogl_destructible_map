@@ -29,7 +29,7 @@ int main()
 	auto m = glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0));
 	map->set_transformation(m);
 	map->load_sample();
-	map->remove_rect(glm::vec2(10, 10), glm::vec2(18, 18));
+	map->remove_rect(glm::vec2(8, 8), glm::vec2(18, 18));
 	root->add_node(map);
 
 	engine->run();
