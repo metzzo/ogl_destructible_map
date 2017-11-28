@@ -147,6 +147,9 @@
     <ClInclude Include="poly2tri\sweep\sweep_context.h">
       <Filter>Headerdateien\Utility\Poly2Tri</Filter>
     </ClInclude>
+    <ClInclude Include="Quadtree.h">
+      <Filter>Headerdateien\Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GroupNode.cpp">
@@ -217,6 +220,9 @@
     </ClCompile>
     <ClCompile Include="poly2tri\sweep\sweep_context.cc">
       <Filter>Quelldateien\Utility\Poly2Tri</Filter>
+    </ClCompile>
+    <ClCompile Include="Quadtree.cpp">
+      <Filter>Quelldateien\Utility</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -179,6 +179,7 @@
     <ClInclude Include="poly2tri\sweep\cdt.h" />
     <ClInclude Include="poly2tri\sweep\sweep.h" />
     <ClInclude Include="poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="Quadtree.h" />
     <ClInclude Include="RenderingEngine.h" />
     <ClInclude Include="RenderingNode.h" />
     <ClInclude Include="ShaderResource.h" />
@@ -205,6 +206,7 @@
     <ClCompile Include="poly2tri\sweep\cdt.cc" />
     <ClCompile Include="poly2tri\sweep\sweep.cc" />
     <ClCompile Include="poly2tri\sweep\sweep_context.cc" />
+    <ClCompile Include="Quadtree.cpp" />
     <ClCompile Include="RenderingEngine.cpp" />
     <ClCompile Include="RenderingNode.cpp" />
     <ClCompile Include="ShaderResource.cpp" />
