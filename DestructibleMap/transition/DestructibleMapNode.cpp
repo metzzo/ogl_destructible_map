@@ -57,33 +57,8 @@ void include_point_in_end_boundary(glm::vec2& end_boundary, const glm::vec2& pos
 	end_boundary.y = std::max(end_boundary.y, pos.y);
 }
 
-void DestructibleMapNode::load(ClipperLib::Paths paths)
-{	
-	ClipperLib::PolyTree poly_tree;
-	ClipperLib::Clipper c;
-	c.StrictlySimple(true);
-	c.AddPaths(paths, ClipperLib::ptSubject, true);
-	if (!c.Execute(ClipperLib::ctUnion, poly_tree, ClipperLib::pftNonZero))
-	{
-		std::cout << "Could not create Polygon Tree" << std::endl;
-	}
-
-	if (poly_tree.Total() == 0)
-	{
-		return;
-	}
-
-	std::vector<glm::vec2> vertices;
-	std::vector<glm::vec2> points;
-
-	std::random_device seeder;
-	std::mt19937 engine(seeder());
-	std::uniform_real_distribution<float> u_dist(0.0, 1.0);
-
-	const auto max_float = std::numeric_limits<float>::max();
-	glm::vec2 boundary_begin = glm::vec2(max_float, max_float);
-	glm::vec2 boundary_end = glm::vec2(-max_float, -max_float);
-
+void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices)
+{
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
@@ -130,39 +105,9 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 					const auto v1 = glm::vec2(float(p1->x), float(p1->y));
 					const auto v2 = glm::vec2(float(p2->x), float(p2->y));
 
-					include_point_in_begin_boundary(boundary_begin, v0);
-					include_point_in_begin_boundary(boundary_begin, v1);
-					include_point_in_begin_boundary(boundary_begin, v2);
-
-					include_point_in_end_boundary(boundary_end, v0);
-					include_point_in_end_boundary(boundary_end, v1);
-					include_point_in_end_boundary(boundary_end, v2);
-
-
 					vertices.push_back(v0);
 					vertices.push_back(v1);
 					vertices.push_back(v2);
-
-					points.push_back(v0);
-					points.push_back(v1);
-					points.push_back(v2);
-					const auto center = (v0 + v1 + v2) * float(1.0 / 3.0);
-					points.push_back(center);
-
-
-					// get density distribution
-					const auto area = int(triangle_area(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y)/10.0);
-					std::cout << "Area: " << area << std::endl;
-
-
-					for (auto distr = 0; distr < area; distr++) {
-						const float u = u_dist(engine);
-						const std::uniform_real_distribution<double> v_dist(0.0, 1.0 - u);
-						const float v = v_dist(engine);
-
-						const auto point = u*v0 + v*v1 + (1 - u - v)*v2;
-						points.push_back(point);
-					}
 				}
 
 				remove_polyline(polyline);
@@ -176,27 +121,90 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 
 		current_node = current_node->GetNext();
 	}
+}
 
+void DestructibleMapNode::load(ClipperLib::Paths paths)
+{
+	ClipperLib::PolyTree poly_tree;
+	ClipperLib::Clipper c;
+	c.StrictlySimple(true);
+	c.AddPaths(paths, ClipperLib::ptSubject, true);
+	if (!c.Execute(ClipperLib::ctUnion, poly_tree, ClipperLib::pftNonZero))
+	{
+		std::cout << "Could not create Polygon Tree" << std::endl;
+	}
+
+	if (poly_tree.Total() == 0)
+	{
+		return;
+	}
+
+	triangulate(poly_tree, this->vertices_);
+
+	std::random_device seeder;
+	std::mt19937 engine(seeder());
+	std::uniform_real_distribution<float> u_dist(0.0, 1.0);
+
+	const auto max_float = std::numeric_limits<float>::max();
+	glm::vec2 boundary_begin = glm::vec2(max_float, max_float);
+	glm::vec2 boundary_end = glm::vec2(-max_float, -max_float);
+
+
+	for (auto i = 0; i < this->vertices_.size(); i += 3)
+	{
+		const auto& v0 = this->vertices_[i];
+		const auto& v1 = this->vertices_[i + 1];
+		const auto& v2 = this->vertices_[i + 2];
+
+		include_point_in_begin_boundary(boundary_begin, v0);
+		include_point_in_begin_boundary(boundary_begin, v1);
+		include_point_in_begin_boundary(boundary_begin, v2);
+
+		include_point_in_end_boundary(boundary_end, v0);
+		include_point_in_end_boundary(boundary_end, v1);
+		include_point_in_end_boundary(boundary_end, v2);
+
+		this->points_.push_back(v0);
+		this->points_.push_back(v1);
+		this->points_.push_back(v2);
+		const auto center = (v0 + v1 + v2) * float(1.0 / 3.0);
+		this->points_.push_back(center);
+
+
+		// get density distribution
+		const auto area = int(triangle_area(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y) / 10.0);
+		std::cout << "Area: " << area << std::endl;
+
+
+		for (auto distr = 0; distr < area; distr++) {
+			const float u = u_dist(engine);
+			const std::uniform_real_distribution<double> v_dist(0.0, 1.0 - u);
+			const float v = v_dist(engine);
+
+			const auto point = u*v0 + v*v1 + (1 - u - v)*v2;
+			this->points_.push_back(point);
+		}
+	}
 
 	std::cout << "Vertices: " << std::endl;
-	for (auto &vertex : vertices)
+	for (auto &vertex : this->vertices_)
 	{
 		std::cout << vertex.x << " " << vertex.y << std::endl;
 	}
 
 	// shuffle points to avoid degenerate quadtree
-	std::random_shuffle(points.begin(), points.end());
+	std::random_shuffle(this->points_.begin(), this->points_.end());
 
-	Quadtree quad_tree = Quadtree(10, boundary_begin, boundary_end);
+	this->quad_tree_ = Quadtree(nullptr, 15, boundary_begin, boundary_end);
 
-	for (auto& point : points)
+	for (auto& point : this->points_)
 	{
-		quad_tree.insert(point);
+		this->quad_tree_.insert(point);
 	}
 
-	quad_tree.get_lines(this->lines_);
-	this->vertices_ = vertices;
-	this->points_ = points;
+	this->quad_tree_.apply_polygon(paths);
+
+	this->quad_tree_.get_lines(this->lines_);
 
 	const auto lines_vertices = new float[lines_.size() * 3];
 	const auto lines_normal = new float[lines_.size() * 3];
@@ -223,11 +231,11 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
 	this->quadtree_resource_ = new MeshResource(lines_vertices, lines_normal, lines_uv, lines_.size(), nullptr, 0, mat);
 
-	const auto points_vertices = new float[points.size() * 3];
-	const auto points_normal = new float[points.size() * 3];
-	const auto points_uv = new float[points.size() * 2];
+	const auto points_vertices = new float[this->points_.size() * 3];
+	const auto points_normal = new float[this->points_.size() * 3];
+	const auto points_uv = new float[this->points_.size() * 2];
 	i = 0;
-	for (auto& point : points)
+	for (auto& point : this->points_)
 	{
 		points_uv[i * 2] = 0;
 		points_uv[i * 2 + 1] = 0;
@@ -245,13 +253,13 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	}
 	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
 	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
-	this->point_distribution_resource_ = new MeshResource(points_vertices, points_normal, points_uv, points.size(), nullptr, 0, mat);
+	this->point_distribution_resource_ = new MeshResource(points_vertices, points_normal, points_uv, this->points_.size(), nullptr, 0, mat);
 
-	const auto global_vertices = new float[vertices.size() * 3];
-	const auto global_normal = new float[vertices.size() * 3];
-	const auto global_uv = new float[vertices.size() * 2];
+	const auto global_vertices = new float[this->vertices_.size() * 3];
+	const auto global_normal = new float[this->vertices_.size() * 3];
+	const auto global_uv = new float[this->vertices_.size() * 2];
 	i = 0;
-	for (auto& vertex : vertices)
+	for (auto& vertex : this->vertices_)
 	{
 		global_uv[i*2] = 0;
 		global_uv[i*2 + 1] = 0;
@@ -269,7 +277,7 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	}
 	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
 	mat.set_ambient_color(glm::vec3(0.0, 1.0, 0.1));
-	this->total_map_resource_ = new MeshResource(global_vertices, global_normal, global_uv, vertices.size(), nullptr, 0, mat);
+	this->total_map_resource_ = new MeshResource(global_vertices, global_normal, global_uv, this->vertices_.size(), nullptr, 0, mat);
 }
 
 std::vector<IDrawable*> DestructibleMapNode::get_drawables()
@@ -318,6 +326,7 @@ void DestructibleMapNode::init(RenderingEngine* rendering_engine)
 	this->total_map_resource_->init();
 	this->point_distribution_resource_->init();
 	this->quadtree_resource_->init();
+	this->quad_tree_.init(rendering_engine);
 }
 
 void DestructibleMapNode::draw(ShaderResource* shader) const
@@ -335,13 +344,312 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 
 	glPointSize(8);
 	glBindVertexArray(this->point_distribution_resource_->get_resource_id());
-	glDrawArrays(GL_POINTS, 0, this->points_.size());
+	//glDrawArrays(GL_POINTS, 0, this->points_.size());
 	glBindVertexArray(0);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 	point_display = false;
 	shader->set_model_uniforms(this, &point_display);
 	glBindVertexArray(this->total_map_resource_->get_resource_id());
-	glDrawArrays(GL_TRIANGLES, 0, this->vertices_.size());
+	//glDrawArrays(GL_TRIANGLES, 0, this->vertices_.size());
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	this->quad_tree_.draw();
 	glBindVertexArray(0);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+}
+
+void DestructibleMapNode::remove_rect(const glm::vec2& begin, const glm::vec2& end)
+{
+	assert(begin.x < end.x && begin.y < end.y);
+	std::vector<Quadtree*> affected_leaves;
+	this->quad_tree_.query_range(begin, end, affected_leaves);
+
+	const auto size = end - begin;
+	auto rect_path = make_rect(int(begin.x), int(begin.y), int(size.x), int(size.y));
+
+	for (auto &leave : affected_leaves)
+	{
+		if (leave->begin_.x >= begin.x && leave->begin_.y >= begin.y && leave->end_.x <= end.x && leave->end_.y <= end.y)
+		{
+			// removing this quadtree entirely is sufficient
+			leave->remove();
+		}
+		else {
+			ClipperLib::PolyTree result_poly_tree;
+			ClipperLib::Clipper c;
+			c.StrictlySimple(true);
+			c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
+			c.AddPath(rect_path, ClipperLib::ptClip, true);
+			if (!c.Execute(ClipperLib::ctDifference, result_poly_tree, ClipperLib::pftNonZero))
+			{
+				std::cout << "Could not create Polygon Tree" << std::endl;
+			}
+
+			ClipperLib::Paths result_paths;
+			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+
+			leave->set_paths(result_paths, result_poly_tree);
+		}
+	}
+}
+
+
+Quadtree::Quadtree(Quadtree *parent, const int max_points, const glm::vec2 begin, const glm::vec2 end)
+{
+	assert(begin.x < end.x && begin.y < end.y);
+	this->max_points_ = max_points;
+	this->begin_ = begin;
+	this->end_ = end;
+	this->north_west_ = nullptr;
+	this->north_east_ = nullptr;
+	this->south_west_ = nullptr;
+	this->south_east_ = nullptr;
+	this->mesh_ = nullptr;
+	this->parent_ = parent;
+}
+
+Quadtree::Quadtree()
+{
+	this->max_points_ = 0;
+	this->north_west_ = nullptr;
+	this->north_east_ = nullptr;
+	this->south_west_ = nullptr;
+	this->south_east_ = nullptr;
+	this->mesh_ = nullptr;
+	this->parent_ = nullptr;
+}
+
+Quadtree::~Quadtree()
+{
+	if (this->north_west_)
+	{
+		delete this->north_west_;
+		delete this->north_east_;
+		delete this->south_west_;
+		delete this->south_east_;
+	}
+	if (this->mesh_)
+	{
+		delete this->mesh_;
+	}
+}
+
+void Quadtree::get_lines(std::vector<glm::vec2>& lines) const
+{
+	if (this->north_west_)
+	{
+		this->north_west_->get_lines(lines);
+		this->north_east_->get_lines(lines);
+		this->south_west_->get_lines(lines);
+		this->south_east_->get_lines(lines);
+	}
+	else
+	{
+		const glm::vec2 size = this->end_ - this->begin_;
+		lines.push_back(this->begin_);
+		lines.push_back(this->begin_ + glm::vec2(size.x, 0));
+
+		lines.push_back(this->begin_);
+		lines.push_back(this->begin_ + glm::vec2(0, size.y));
+
+		lines.push_back(this->end_);
+		lines.push_back(this->end_ - glm::vec2(size.x, 0));
+
+		lines.push_back(this->end_);
+		lines.push_back(this->end_ - glm::vec2(0, size.y));
+	}
+}
+
+bool Quadtree::insert(const glm::vec2& point)
+{
+	if (point.x < this->begin_.x || point.y < this->begin_.y || point.x > this->end_.x || point.y > this->end_.y)
+	{
+		return false;
+	}
+
+	if (this->points_.size() < max_points_)
+	{
+		this->points_.push_back(point);
+		return true;
+	}
+
+	if (this->north_west_ == nullptr)
+	{
+		const glm::vec2 size = (this->end_ - this->begin_) / float(2.0);
+		const glm::vec2 size_x = glm::vec2(size.x, 0);
+		const glm::vec2 size_y = glm::vec2(0, size.y);
+
+		this->north_west_ = new Quadtree(this, this->max_points_, this->begin_, this->begin_ + size);
+		this->north_east_ = new Quadtree(this, this->max_points_, this->begin_ + size_x, this->begin_ + size_x + size);
+		this->south_west_ = new Quadtree(this, this->max_points_, this->begin_ + size_y, this->begin_ + size_y + size);
+		this->south_east_ = new Quadtree(this, this->max_points_, this->begin_ + size, this->end_);
+
+		for (auto& old_points : this->points_)
+		{
+			this->insert(old_points);
+		}
+		this->points_.clear();
+	}
+
+	if (this->north_west_->insert(point))
+	{
+		return true;
+	}
+	if (this->north_east_->insert(point))
+	{
+		return true;
+	}
+	if (this->south_west_->insert(point))
+	{
+		return true;
+	}
+	if (this->south_east_->insert(point))
+	{
+		return true;
+	}
+	return false;
+}
+
+void Quadtree::apply_polygon(const ClipperLib::Paths &input_paths)
+{
+	const glm::ivec2 quad_pos = glm::ivec2(this->begin_);
+	const glm::ivec2 quad_size = glm::ivec2(this->end_ - this->begin_);
+	const ClipperLib::Path quad = make_rect(quad_pos.x, quad_pos.y, quad_size.x + 1, quad_size.y + 1);
+	ClipperLib::PolyTree result_poly_tree;
+	ClipperLib::Clipper c;
+	c.StrictlySimple(true);
+	c.AddPaths(input_paths, ClipperLib::ptSubject, true);
+	c.AddPath(quad, ClipperLib::ptClip, true);
+	if (!c.Execute(ClipperLib::ctIntersection, result_poly_tree, ClipperLib::pftNonZero))
+	{
+		std::cout << "Could not create Polygon Tree" << std::endl;
+	}
+
+	if (result_poly_tree.Total() == 0)
+	{
+		return;
+	}
+
+	ClipperLib::Paths result_paths;
+	ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+
+	if (this->north_west_)
+	{
+		this->north_west_->apply_polygon(result_paths);
+		this->north_east_->apply_polygon(result_paths);
+		this->south_west_->apply_polygon(result_paths);
+		this->south_east_->apply_polygon(result_paths);
+	} else
+	{
+		this->set_paths(result_paths, result_poly_tree);
+	}
+}
+
+void Quadtree::query_range(const glm::vec2& query_begin, const glm::vec2& query_end, std::vector<Quadtree*> &leaves)
+{
+	assert(query_begin.x < query_end.x && query_begin.y < query_end.y);
+
+	if (query_end.x < this->begin_.x || query_end.y < this->begin_.y || query_begin.x > this->end_.x || query_begin.x > this->end_.y)
+	{
+		return;
+	}
+
+	if (this->north_west_)
+	{
+		this->north_west_->query_range(query_begin, query_end, leaves);
+		this->north_east_->query_range(query_begin, query_end, leaves);
+		this->south_west_->query_range(query_begin, query_end, leaves);
+		this->south_east_->query_range(query_begin, query_end, leaves);
+	} else
+	{
+		leaves.push_back(this);
+	}
+}
+
+void Quadtree::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree)
+{
+	this->paths_ = paths;
+	this->vertices_.clear();
+	triangulate(poly_tree, this->vertices_);
+
+	const auto global_vertices = new float[this->vertices_.size() * 3];
+	const auto global_normal = new float[this->vertices_.size() * 3];
+	const auto global_uv = new float[this->vertices_.size() * 2];
+	auto i = 0;
+	for (auto& vertex : this->vertices_)
+	{
+		global_uv[i * 2] = 0;
+		global_uv[i * 2 + 1] = 0;
+
+		global_normal[i * 3] = 0;
+		global_normal[i * 3 + 1] = 0;
+		global_normal[i * 3 + 2] = 0;
+
+
+		global_vertices[i * 3] = vertex.x;
+		global_vertices[i * 3 + 1] = vertex.y;
+		global_vertices[i * 3 + 2] = 0;
+
+		i++;
+	}
+	Material mat;
+	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
+	mat.set_ambient_color(glm::vec3(0.0, 1.0, 0.1));
+	// TODO: reuse old mesh or delete old mesh
+	this->mesh_ = new MeshResource(global_vertices, global_normal, global_uv, this->vertices_.size(), nullptr, 0, mat);
+}
+
+void Quadtree::draw() const
+{
+	if (this->north_west_)
+	{
+		this->north_west_->draw();
+		this->north_east_->draw();
+		this->south_west_->draw();
+		this->south_east_->draw();
+	}
+	else if (this->mesh_ != nullptr)
+	{
+		glBindVertexArray(this->mesh_->get_resource_id());
+		glDrawArrays(GL_TRIANGLES, 0, this->vertices_.size());
+	}
+}
+
+void Quadtree::init(RenderingEngine* engine)
+{
+	if (this->north_west_)
+	{
+		this->north_west_->init(engine);
+		this->north_east_->init(engine);
+		this->south_west_->init(engine);
+		this->south_east_->init(engine);
+	} else if (this->mesh_ != nullptr)
+	{
+		this->mesh_->init();
+	}
+}
+
+void Quadtree::remove()
+{
+	if (this->parent_)
+	{
+		if (this->parent_->north_east_ == this)
+		{
+			this->parent_->north_east_ = nullptr;
+		}
+		if (this->parent_->north_west_ == this)
+		{
+			this->parent_->north_west_ = nullptr;
+		}
+
+		if (this->parent_->south_west_ == this)
+		{
+			this->parent_->south_west_ = nullptr;
+		}
+		if (this->parent_->south_east_ == this)
+		{
+			this->parent_->south_east_ = nullptr;
+		}
+	}
+	delete this;
 }
