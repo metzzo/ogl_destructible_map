@@ -26,10 +26,10 @@ int main()
 	root->add_node(cam);
 	
 	auto map = new DestructibleMapNode("map");
-	auto m = glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0));
+	auto m = glm::translate(glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0)), glm::vec3(-25, -25, 0));
 	map->set_transformation(m);
 	map->load_sample();
-	map->remove_rect(glm::vec2(8, 8), glm::vec2(18, 18));
+	map->remove(make_rect(8, 8, 18, 18));
 	root->add_node(map);
 
 	engine->run();

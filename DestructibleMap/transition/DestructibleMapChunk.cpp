@@ -1,5 +1,5 @@
 
-#include "Quadtree.h"
+#include "DestructibleMapChunk.h"
 #include <cassert>
 #include "clipper.hpp"
 #include <iostream>
@@ -11,7 +11,7 @@
 ClipperLib::Path make_rect(const int x, const int y, const int w, const int h);
 void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices);
 
-Quadtree::Quadtree(Quadtree *parent, const glm::vec2 begin, const glm::vec2 end)
+DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end)
 {
 	assert(begin.x < end.x && begin.y < end.y);
 	this->begin_ = begin;
@@ -24,7 +24,7 @@ Quadtree::Quadtree(Quadtree *parent, const glm::vec2 begin, const glm::vec2 end)
 	this->parent_ = parent;
 }
 
-Quadtree::Quadtree()
+DestructibleMapChunk::DestructibleMapChunk()
 {
 	this->north_west_ = nullptr;
 	this->north_east_ = nullptr;
@@ -34,7 +34,7 @@ Quadtree::Quadtree()
 	this->parent_ = nullptr;
 }
 
-Quadtree::~Quadtree()
+DestructibleMapChunk::~DestructibleMapChunk()
 {
 	if (this->north_west_)
 	{
@@ -49,7 +49,7 @@ Quadtree::~Quadtree()
 	}
 }
 
-void Quadtree::get_lines(std::vector<glm::vec2>& lines) const
+void DestructibleMapChunk::get_lines(std::vector<glm::vec2>& lines) const
 {
 	if (this->north_west_)
 	{
@@ -75,7 +75,7 @@ void Quadtree::get_lines(std::vector<glm::vec2>& lines) const
 	}
 }
 
-bool Quadtree::insert(const glm::vec2& point, const int max_points)
+bool DestructibleMapChunk::insert(const glm::vec2& point, const int max_points)
 {
 	if (point.x < this->begin_.x || point.y < this->begin_.y || point.x > this->end_.x || point.y > this->end_.y)
 	{
@@ -94,10 +94,10 @@ bool Quadtree::insert(const glm::vec2& point, const int max_points)
 		const glm::vec2 size_x = glm::vec2(size.x, 0);
 		const glm::vec2 size_y = glm::vec2(0, size.y);
 
-		this->north_west_ = new Quadtree(this, this->begin_, this->begin_ + size);
-		this->north_east_ = new Quadtree(this, this->begin_ + size_x, this->begin_ + size_x + size);
-		this->south_west_ = new Quadtree(this, this->begin_ + size_y, this->begin_ + size_y + size);
-		this->south_east_ = new Quadtree(this, this->begin_ + size, this->end_);
+		this->north_west_ = new DestructibleMapChunk(this, this->begin_, this->begin_ + size);
+		this->north_east_ = new DestructibleMapChunk(this, this->begin_ + size_x, this->begin_ + size_x + size);
+		this->south_west_ = new DestructibleMapChunk(this, this->begin_ + size_y, this->begin_ + size_y + size);
+		this->south_east_ = new DestructibleMapChunk(this, this->begin_ + size, this->end_);
 
 		for (auto& old_points : this->points_)
 		{
@@ -125,7 +125,7 @@ bool Quadtree::insert(const glm::vec2& point, const int max_points)
 	return false;
 }
 
-void Quadtree::apply_polygon(const ClipperLib::Paths &input_paths)
+void DestructibleMapChunk::apply_polygon(const ClipperLib::Paths &input_paths)
 {
 	const glm::ivec2 quad_pos = glm::ivec2(this->begin_);
 	const glm::ivec2 quad_size = glm::ivec2(this->end_ - this->begin_);
@@ -161,7 +161,7 @@ void Quadtree::apply_polygon(const ClipperLib::Paths &input_paths)
 	}
 }
 
-void Quadtree::query_range(const glm::vec2& query_begin, const glm::vec2& query_end, std::vector<Quadtree*> &leaves)
+void DestructibleMapChunk::query_range(const glm::vec2& query_begin, const glm::vec2& query_end, std::vector<DestructibleMapChunk*> &leaves)
 {
 	assert(query_begin.x < query_end.x && query_begin.y < query_end.y);
 
@@ -183,7 +183,7 @@ void Quadtree::query_range(const glm::vec2& query_begin, const glm::vec2& query_
 	}
 }
 
-void Quadtree::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree)
+void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree)
 {
 	this->paths_ = paths;
 	this->vertices_.clear();
@@ -196,12 +196,12 @@ void Quadtree::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyT
 	this->mesh_ = new MeshResource(this->vertices_, mat);
 }
 
-void Quadtree::simplify()
+void DestructibleMapChunk::simplify()
 {
 	// TODO
 }
 
-void Quadtree::draw() const
+void DestructibleMapChunk::draw() const
 {
 	if (this->north_west_)
 	{
@@ -217,7 +217,7 @@ void Quadtree::draw() const
 	}
 }
 
-void Quadtree::init(RenderingEngine* engine)
+void DestructibleMapChunk::init(RenderingEngine* engine)
 {
 	if (this->north_west_)
 	{
@@ -232,7 +232,7 @@ void Quadtree::init(RenderingEngine* engine)
 	}
 }
 
-void Quadtree::remove()
+void DestructibleMapChunk::remove()
 {
 	// TODO: proper removing
 	this->mesh_ = nullptr;

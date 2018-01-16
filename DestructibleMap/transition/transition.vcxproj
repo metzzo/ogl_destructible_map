@@ -154,7 +154,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\..\..\Downloads\poly2tri-master\poly2tri-master\poly2tri\common\utils.h" />
     <ClInclude Include="AnimatorNode.h" />
     <ClInclude Include="CameraNode.h" />
     <ClInclude Include="clipper.hpp" />
@@ -179,7 +178,7 @@
     <ClInclude Include="poly2tri\sweep\cdt.h" />
     <ClInclude Include="poly2tri\sweep\sweep.h" />
     <ClInclude Include="poly2tri\sweep\sweep_context.h" />
-    <ClInclude Include="Quadtree.h" />
+    <ClInclude Include="DestructibleMapChunk.h" />
     <ClInclude Include="RenderingEngine.h" />
     <ClInclude Include="RenderingNode.h" />
     <ClInclude Include="ShaderResource.h" />
@@ -206,7 +205,7 @@
     <ClCompile Include="poly2tri\sweep\cdt.cc" />
     <ClCompile Include="poly2tri\sweep\sweep.cc" />
     <ClCompile Include="poly2tri\sweep\sweep_context.cc" />
-    <ClCompile Include="Quadtree.cpp" />
+    <ClCompile Include="DestructibleMapChunk.cpp" />
     <ClCompile Include="RenderingEngine.cpp" />
     <ClCompile Include="RenderingNode.cpp" />
     <ClCompile Include="ShaderResource.cpp" />

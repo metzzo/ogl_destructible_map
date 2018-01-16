@@ -123,12 +123,6 @@
     <ClInclude Include="clipper.hpp">
       <Filter>Headerdateien\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\..\Downloads\poly2tri-master\poly2tri-master\poly2tri\common\utils.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\common\utils.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="poly2tri\sweep\advancing_front.h">
       <Filter>Headerdateien\Utility\Poly2Tri</Filter>
     </ClInclude>
@@ -147,8 +141,11 @@
     <ClInclude Include="poly2tri\sweep\sweep_context.h">
       <Filter>Headerdateien\Utility\Poly2Tri</Filter>
     </ClInclude>
-    <ClInclude Include="Quadtree.h">
+    <ClInclude Include="DestructibleMapChunk.h">
       <Filter>Headerdateien\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="poly2tri\common\utils.h">
+      <Filter>Headerdateien\Utility\Poly2Tri</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -221,7 +218,7 @@
     <ClCompile Include="poly2tri\sweep\sweep_context.cc">
       <Filter>Quelldateien\Utility\Poly2Tri</Filter>
     </ClCompile>
-    <ClCompile Include="Quadtree.cpp">
+    <ClCompile Include="DestructibleMapChunk.cpp">
       <Filter>Quelldateien\Utility</Filter>
     </ClCompile>
   </ItemGroup>

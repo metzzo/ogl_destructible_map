@@ -18,6 +18,18 @@ float triangle_area(const float d_x0, const float d_y0, const float d_x1, const 
 	return abs(((d_x1 - d_x0)*(d_y2 - d_y0) - (d_x2 - d_x0)*(d_y1 - d_y0)) / 2.0);
 }
 
+void get_bounding_box(const ClipperLib::Path& polygon, glm::ivec2& begin, glm::ivec2& end)
+{
+	end = glm::ivec2(INT_MIN, INT_MIN);
+	begin = glm::ivec2(INT_MAX, INT_MAX);
+	for (const auto &point : polygon)
+	{
+		begin.x = std::min(begin.x, int(point.X));
+		begin.y = std::min(begin.y, int(point.Y));
+		end.x = std::max(end.x, int(point.X));
+		end.y = std::max(end.y, int(point.Y));
+	}
+}
 
 ClipperLib::Path make_rect(const int x, const int y, const int w, const int h)
 {
@@ -178,9 +190,17 @@ void generate_aabb(const std::vector<glm::vec2> &vertices, glm::vec2& boundary_b
 	}
 }
 
-void DestructibleMapNode::load(ClipperLib::Paths paths)
+void print_vertices(const std::vector<glm::vec2> &vertices)
 {
-	ClipperLib::PolyTree poly_tree;
+	std::cout << "Vertices: " << std::endl;
+	for (auto &vertex : vertices)
+	{
+		std::cout << vertex.x << " " << vertex.y << std::endl;
+	}
+}
+
+void paths_to_polytree(const ClipperLib::Paths &paths, ClipperLib::PolyTree &poly_tree)
+{
 	ClipperLib::Clipper c;
 	c.StrictlySimple(true);
 	c.AddPaths(paths, ClipperLib::ptSubject, true);
@@ -188,33 +208,35 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	{
 		std::cout << "Could not create Polygon Tree" << std::endl;
 	}
+}
 
-	if (poly_tree.Total() == 0)
-	{
-		return;
-	}
+void DestructibleMapNode::load(ClipperLib::Paths paths)
+{
+	std::cout << "Load Map" << std::endl;
 
 	const auto max_float = std::numeric_limits<float>::max();
 	glm::vec2 boundary_begin = glm::vec2(max_float, max_float);
 	glm::vec2 boundary_end = glm::vec2(-max_float, -max_float);
+	ClipperLib::PolyTree poly_tree;
 
+	paths_to_polytree(paths, poly_tree);
 	triangulate(poly_tree, this->vertices_);
 	generate_aabb(this->vertices_, boundary_begin, boundary_end);
+	print_vertices(this->vertices_);
 
-	std::cout << "Vertices: " << std::endl;
-	for (auto &vertex : this->vertices_)
-	{
-		std::cout << vertex.x << " " << vertex.y << std::endl;
-	}
+	this->quad_tree_ = DestructibleMapChunk(nullptr, boundary_begin, boundary_end);
 
-	this->quad_tree_ = Quadtree(nullptr, boundary_begin, boundary_end);
-
+	std::cout << "Generating Point Cloud" << std::endl;
 	generate_point_cloud(this->vertices_, this->points_);
+
+	std::cout << "Generating Quad Tree" << std::endl;
 	for (auto& point : this->points_)
 	{
-		this->quad_tree_.insert(point, 5);
+		// 0.1% of points are allowed per quad tree
+		this->quad_tree_.insert(point, this->points_.size() / 1000.0);
 	}
 
+	std::cout << "Applying Polygon" << std::endl;
 	this->quad_tree_.apply_polygon(paths);
 
 	Material mat;
@@ -255,14 +277,28 @@ void DestructibleMapNode::load_from_svg(const std::string& path)
 
 void DestructibleMapNode::load_sample()
 {
-	ClipperLib::Paths paths(5);
+	const int num_rects = 100;
+	const int width = 1000;
+	const int height = 1000;
 
-	paths
-		<< make_rect(0, 0, 20, 20)
-		<< make_rect(10, 10, 20, 20)
-		<< make_rect(80, 90, 10, 20)
-		<< make_rect(50, 0, 10, 20)
-		<< make_rect(0, 40, 10, 20);
+	const int rect_min_size = 5;
+	const int rect_max_size = 50;
+
+	ClipperLib::Paths paths(num_rects);
+
+	for (auto i = 0; i < num_rects; i++)
+	{
+		auto pos_x = rand() % width;
+		auto pos_y = rand() % height;
+		auto w = rect_min_size + rand() % (rect_max_size - rect_min_size);
+		auto h = rect_min_size + rand() % (rect_max_size - rect_min_size);
+		paths.push_back(make_rect(
+			pos_x,
+			pos_y,
+			pos_x + w,
+			pos_y + h
+		));
+	}
 
 	this->load(paths);
 }
@@ -305,44 +341,39 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void DestructibleMapNode::remove_rect(const glm::vec2& begin, const glm::vec2& end)
+void DestructibleMapNode::remove(const ClipperLib::Path polygon)
 {
-	assert(begin.x < end.x && begin.y < end.y);
-	std::vector<Quadtree*> affected_leaves;
+	glm::ivec2 begin, end;
+
+	get_bounding_box(polygon, begin, end);
+
+	std::vector<DestructibleMapChunk*> affected_leaves;
 	this->quad_tree_.query_range(begin, end, affected_leaves);
 
 	const auto size = end - begin;
-	const auto rect_path = make_rect(int(begin.x), int(begin.y), int(size.x), int(size.y));
 
 	for (auto &leave : affected_leaves)
 	{
-		if (leave->begin_.x >= begin.x && leave->begin_.y >= begin.y && leave->end_.x <= end.x && leave->end_.y <= end.y)
+		ClipperLib::PolyTree result_poly_tree;
+		ClipperLib::Clipper c;
+		c.StrictlySimple(true);
+		c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
+		c.AddPath(polygon, ClipperLib::ptClip, true);
+		if (!c.Execute(ClipperLib::ctDifference, result_poly_tree, ClipperLib::pftNonZero))
 		{
-			// removing this quadtree entirely is sufficient
+			std::cout << "Could not create Polygon Tree" << std::endl;
+		}
+
+		ClipperLib::Paths result_paths;
+
+		if (result_poly_tree.Total() == 0)
+		{
 			leave->remove();
 		}
 		else {
-			ClipperLib::PolyTree result_poly_tree;
-			ClipperLib::Clipper c;
-			c.StrictlySimple(true);
-			c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
-			c.AddPath(rect_path, ClipperLib::ptClip, true);
-			if (!c.Execute(ClipperLib::ctDifference, result_poly_tree, ClipperLib::pftNonZero))
-			{
-				std::cout << "Could not create Polygon Tree" << std::endl;
-			}
+			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
-			ClipperLib::Paths result_paths;
-
-			if (result_poly_tree.Total() == 0)
-			{
-				leave->remove();
-			}
-			else {
-				ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
-
-				leave->set_paths(result_paths, result_poly_tree);
-			}
+			leave->set_paths(result_paths, result_poly_tree);
 		}
 	}
 	this->update_quadtree_representation();

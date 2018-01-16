@@ -1,20 +1,22 @@
 #pragma once
 #include "clipper.hpp"
-#include "TransformationNode.h"
 #include "IDrawable.h"
-#include "Quadtree.h"
+#include "DestructibleMapChunk.h"
+#include "TransformationNode.h"
+
+ClipperLib::Path make_rect(const int x, const int y, const int w, const int h);
 
 class MeshResource;
 class DestructibleMapNode :
-	public TransformationNode,
-	public IDrawable
+	public IDrawable,
+	public TransformationNode
 {
 	glm::mat4 trafo_;
 	glm::mat4 itrafo_;
 	std::vector<glm::vec2> vertices_;
 	std::vector<glm::vec2> points_;
 	std::vector<glm::vec2> lines_;
-	Quadtree quad_tree_;
+	DestructibleMapChunk quad_tree_;
 
 	void load(ClipperLib::Paths poly_tree);
 public:
@@ -33,7 +35,7 @@ public:
 	std::vector<IDrawable*> get_drawables() override;
 	
 	void draw(ShaderResource* shader) const override;
-	void remove_rect(const glm::vec2 &begin, const glm::vec2 &end);
+	void remove(const ClipperLib::Path polygon);
 
 	void update_quadtree_representation();
 };

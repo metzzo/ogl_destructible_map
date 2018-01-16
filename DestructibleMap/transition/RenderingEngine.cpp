@@ -72,6 +72,8 @@ void RenderingEngine::run()
 		return;
 	}
 
+	glfwSwapInterval(0);
+
 	//Set DebugContext Callback
 #if _DEBUG
 	// Query the OpenGL function to register your callback function.
@@ -107,11 +109,15 @@ void RenderingEngine::run()
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	double last_time = glfwGetTime();
+	double last_fps_show = last_time;
 	while (!glfwWindowShouldClose(window))
 	{
-		double current_time = glfwGetTime();
-		double delta = current_time - last_time;
-		//std::cout << 1/delta << std::endl;
+		const double current_time = glfwGetTime();
+		const double delta = current_time - last_time;
+		if (current_time - last_fps_show > 0.5) {
+			std::cout << 1 / delta << std::endl;
+			last_fps_show = current_time;
+		}
 		last_time = current_time;
 
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
