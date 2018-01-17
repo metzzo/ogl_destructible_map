@@ -8,10 +8,9 @@
 #include <random>
 #include <limits>
 
-#define SCALE_FACTOR (1000.0)
-#define SCALE_FACTOR_INV (1.0/SCALE_FACTOR)
+#define SCALE_FACTOR 1.0f //(1000.0f)
+#define SCALE_FACTOR_INV 1.0f //(1.0f/SCALE_FACTOR)
 
-// TODO: scaling to avoid clipping issues
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -150,9 +149,9 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 					const auto p1 = triangle->GetPoint(1);
 					const auto p2 = triangle->GetPoint(2);
 
-					const auto v0 = glm::vec2(float(p0->x), float(p0->y));
-					const auto v1 = glm::vec2(float(p1->x), float(p1->y));
-					const auto v2 = glm::vec2(float(p2->x), float(p2->y));
+					const auto v0 = glm::vec2(float(p0->x), float(p0->y)) * SCALE_FACTOR_INV;
+					const auto v1 = glm::vec2(float(p1->x), float(p1->y)) * SCALE_FACTOR_INV;
+					const auto v2 = glm::vec2(float(p2->x), float(p2->y)) * SCALE_FACTOR_INV;
 
 					vertices.push_back(v0);
 					vertices.push_back(v1);
@@ -247,6 +246,8 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
 	mat.set_ambient_color(glm::vec3(0.0, 1.0, 0.1));
 	this->total_map_resource_ = new MeshResource(this->vertices_, mat);
+
+	this->update_quadtree_representation();
 }
 
 std::vector<IDrawable*> DestructibleMapNode::get_drawables()
@@ -277,7 +278,7 @@ void DestructibleMapNode::load_from_svg(const std::string& path)
 
 void DestructibleMapNode::load_sample()
 {
-	const int num_rects = 100;
+	const int num_rects = 50;
 	const int width = 1000;
 	const int height = 1000;
 
@@ -293,10 +294,10 @@ void DestructibleMapNode::load_sample()
 		auto w = rect_min_size + rand() % (rect_max_size - rect_min_size);
 		auto h = rect_min_size + rand() % (rect_max_size - rect_min_size);
 		paths.push_back(make_rect(
-			pos_x,
-			pos_y,
-			pos_x + w,
-			pos_y + h
+			pos_x*SCALE_FACTOR,
+			pos_y*SCALE_FACTOR,
+			(pos_x + w)*SCALE_FACTOR,
+			(pos_y + h)*SCALE_FACTOR
 		));
 	}
 

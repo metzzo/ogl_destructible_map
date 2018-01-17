@@ -17,6 +17,8 @@ RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int
 
 	this->main_shader_ = new MainShader();
 	this->register_resource(this->main_shader_);
+
+	this->window_ = nullptr;
 }
 
 RenderingEngine::~RenderingEngine()
@@ -55,14 +57,14 @@ void RenderingEngine::run()
 		glfwWindowHint(GLFW_REFRESH_RATE, refresh_rate_);
 	}
 
-	const auto window = glfwCreateWindow(this->viewport_.x, this->viewport_.y, "Destructible Map", monitor, nullptr);
-	if (window == nullptr)
+	this->window_ = glfwCreateWindow(this->viewport_.x, this->viewport_.y, "Destructible Map", monitor, nullptr);
+	if (this->window_ == nullptr)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		return;
 	}
-	glfwMakeContextCurrent(window);
+	glfwMakeContextCurrent(this->window_);
 
 
 	if (!gladLoadGLLoader(GLADloadproc(glfwGetProcAddress)))
@@ -110,7 +112,7 @@ void RenderingEngine::run()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	double last_time = glfwGetTime();
 	double last_fps_show = last_time;
-	while (!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(this->window_))
 	{
 		const double current_time = glfwGetTime();
 		const double delta = current_time - last_time;
@@ -120,8 +122,8 @@ void RenderingEngine::run()
 		}
 		last_time = current_time;
 
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-			glfwSetWindowShouldClose(window, true);
+		if (glfwGetKey(this->window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			glfwSetWindowShouldClose(this->window_, true);
 		}
 
 		for (auto& animator_node : this->animator_nodes_)
@@ -134,7 +136,7 @@ void RenderingEngine::run()
 			rendering_node->render(this->drawables_, this->light_nodes_);
 		}
 
-		glfwSwapBuffers(window);
+		glfwSwapBuffers(this->window_);
 		glfwPollEvents();
 	}
 	glfwTerminate();
@@ -142,4 +144,9 @@ void RenderingEngine::run()
 	for (auto& resource : resources_) {
 		delete resource;
 	}
+}
+
+GLFWwindow* RenderingEngine::get_window() const
+{
+	return this->window_;
 }

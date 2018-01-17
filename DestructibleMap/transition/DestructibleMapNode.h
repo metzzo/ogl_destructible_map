@@ -4,8 +4,6 @@
 #include "DestructibleMapChunk.h"
 #include "TransformationNode.h"
 
-ClipperLib::Path make_rect(const int x, const int y, const int w, const int h);
-
 class MeshResource;
 class DestructibleMapNode :
 	public IDrawable,
@@ -16,7 +14,7 @@ class DestructibleMapNode :
 	std::vector<glm::vec2> vertices_;
 	std::vector<glm::vec2> points_;
 	std::vector<glm::vec2> lines_;
-	DestructibleMapChunk quad_tree_;
+	DestructibleMapChunk quad_tree_; 
 
 	void load(ClipperLib::Paths poly_tree);
 public:

@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/vec2.hpp>
 #include <vector>
+#include "GLDebugContext.h"
 class GroupNode;
 class IResource;
 class IDrawable;
@@ -24,6 +25,7 @@ class RenderingEngine
 	int refresh_rate_;
 
 	MainShader *main_shader_;
+	GLFWwindow* window_;
 public:
 	explicit RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int refresh_rate);
 	~RenderingEngine();
@@ -46,5 +48,7 @@ public:
 	{
 		return this->main_shader_;
 	}
+
+	GLFWwindow* get_window() const;
 };
 

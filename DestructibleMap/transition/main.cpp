@@ -7,6 +7,29 @@
 #include "ColladaImporter.h"
 #include "LightNode.h"
 #include "DestructibleMapNode.h"
+#include "AnimatorNode.h"
+
+class ScrollController : public AnimatorNode
+{
+	DestructibleMapNode* map_;
+public:
+
+	ScrollController(const std::string& name, DestructibleMapNode *map)
+		: AnimatorNode(name)
+	{
+		this->map_ = map;
+	}
+
+	void update(double delta) override
+	{
+		auto sx = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_A) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_D);
+		auto sy = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_S) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_W);
+
+		auto trafo = Transformation::translate(glm::vec3(sx, sy, 0) * 5.0f * float(delta));
+
+		this->map_->apply_transformation(trafo);
+	}
+};
 
 int main()
 {
@@ -29,8 +52,10 @@ int main()
 	auto m = glm::translate(glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0)), glm::vec3(-25, -25, 0));
 	map->set_transformation(m);
 	map->load_sample();
-	map->remove(make_rect(8, 8, 18, 18));
 	root->add_node(map);
+
+	auto scroller = new ScrollController("scroller", map);
+	root->add_node(scroller);
 
 	engine->run();
 
