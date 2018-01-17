@@ -72,7 +72,7 @@ void generate_point_cloud(const std::vector<glm::vec2> &vertices, std::vector<gl
 {
 	std::random_device seeder;
 	std::mt19937 engine(seeder());
-	std::uniform_real_distribution<float> u_dist(0.0, 1.0);
+	std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
 
 	points.clear();
 	for (auto i = 0; i < vertices.size(); i += 3)
@@ -92,11 +92,12 @@ void generate_point_cloud(const std::vector<glm::vec2> &vertices, std::vector<gl
 		std::cout << "Area: " << area << std::endl;
 
 		for (auto distr = 0; distr < area; distr++) {
-			const float u = u_dist(engine);
-			const std::uniform_real_distribution<double> v_dist(0.0, 1.0 - u);
-			const float v = v_dist(engine);
+			// Uniformly distribute points on triangle:
+			// https://math.stackexchange.com/questions/18686/uniform-random-point-in-triangle
+			const float r1 = sqrt(uniform_dist(engine));
+			const float r2 = uniform_dist(engine);
 
-			const auto point = u*v0 + v*v1 + (1 - u - v)*v2;
+			const auto point = (1 - r1)*v0 + (r1*(1 - r2))*v1 + (r2*r1)*v2;
 			points.push_back(point);
 		}
 	}
@@ -328,7 +329,7 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 
 	glPointSize(8);
 	glBindVertexArray(this->point_distribution_resource_->get_resource_id());
-	//glDrawArrays(GL_POINTS, 0, this->points_.size());
+	glDrawArrays(GL_POINTS, 0, this->points_.size());
 	glBindVertexArray(0);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
