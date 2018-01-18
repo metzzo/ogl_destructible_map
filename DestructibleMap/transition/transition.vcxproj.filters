@@ -147,6 +147,9 @@
     <ClInclude Include="poly2tri\common\utils.h">
       <Filter>Headerdateien\Utility\Poly2Tri</Filter>
     </ClInclude>
+    <ClInclude Include="DestructibleMapController.h">
+      <Filter>Headerdateien\SceneGraph</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GroupNode.cpp">
@@ -220,6 +223,9 @@
     </ClCompile>
     <ClCompile Include="DestructibleMapChunk.cpp">
       <Filter>Quelldateien\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="DestructibleMapController.cpp">
+      <Filter>Quelldateien\SceneGraph</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

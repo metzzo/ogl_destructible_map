@@ -3,9 +3,13 @@
 #include "IDrawable.h"
 #include "DestructibleMapChunk.h"
 #include "TransformationNode.h"
+#include "AnimatorNode.h"
 
 #define SCALE_FACTOR (1000.0f)
 #define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+
+ClipperLib::Path make_rect(const glm::ivec2 pos, const glm::ivec2 size);
+ClipperLib::Path make_circle(const glm::ivec2 pos, const float radius, const int num_of_points);
 
 class MeshResource;
 class DestructibleMapNode :
@@ -38,7 +42,8 @@ public:
 	std::vector<IDrawable*> get_drawables() override;
 	
 	void draw(ShaderResource* shader) const override;
-	void remove(const ClipperLib::Path polygon);
+
+	void apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type);
 
 	void update_quadtree_representation();
 };

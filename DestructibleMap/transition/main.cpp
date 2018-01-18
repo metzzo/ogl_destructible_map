@@ -8,29 +8,7 @@
 #include "LightNode.h"
 #include "DestructibleMapNode.h"
 #include "AnimatorNode.h"
-
-class ScrollController : public AnimatorNode
-{
-	DestructibleMapNode* map_;
-public:
-
-	ScrollController(const std::string& name, DestructibleMapNode *map)
-		: AnimatorNode(name)
-	{
-		this->map_ = map;
-	}
-
-	void update(double delta) override
-	{
-		auto sx = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_A) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_D);
-		auto sy = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_S) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_W);
-		auto zoom = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_Q) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_E);
-
-		auto trafo = Transformation::translate(glm::vec3(sx, sy, zoom) * 5.0f * float(delta) * (1.0f + 10.0f*glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_LEFT_SHIFT)));
-
-		this->map_->apply_transformation(trafo);
-	}
-};
+#include "DestructibleMapController.h"
 
 int main()
 {
@@ -44,19 +22,17 @@ int main()
 
 	const auto cam = new CameraNode("MainCamera",
 		engine->get_viewport(),
-		glm::perspective(glm::radians(60.0f), float(WINDOW_WIDTH) / float(WINDOW_HEIGHT), 0.1f, 100.0f)		
+		glm::perspective(glm::radians(60.0f), float(WINDOW_WIDTH) / float(WINDOW_HEIGHT), 0.1f, 1000.0f)		
 	);
-	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
+	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 	root->add_node(cam);
 	
 	auto map = new DestructibleMapNode("map",0.001f, 0.01f);
-	auto m = glm::translate(glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0)), glm::vec3(-25, -25, 0));
-	map->set_transformation(m);
 	map->load_sample();
 	root->add_node(map);
 
-	auto scroller = new ScrollController("scroller", map);
-	root->add_node(scroller);
+	auto controller = new DestructibleMapController("map controller", cam, map);
+	root->add_node(controller);
 
 	engine->run();
 

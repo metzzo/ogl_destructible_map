@@ -380,7 +380,7 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
-void DestructibleMapNode::remove(const ClipperLib::Path polygon)
+void DestructibleMapNode::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
 {
 	glm::ivec2 begin, end;
 
@@ -398,7 +398,7 @@ void DestructibleMapNode::remove(const ClipperLib::Path polygon)
 		c.StrictlySimple(true);
 		c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
 		c.AddPath(polygon, ClipperLib::ptClip, true);
-		if (!c.Execute(ClipperLib::ctDifference, result_poly_tree, ClipperLib::pftNonZero))
+		if (!c.Execute(clip_type, result_poly_tree, ClipperLib::pftNonZero))
 		{
 			std::cout << "Could not create Polygon Tree" << std::endl;
 		}
@@ -415,8 +415,8 @@ void DestructibleMapNode::remove(const ClipperLib::Path polygon)
 			leave->set_paths(result_paths, result_poly_tree);
 		}
 	}
-	this->update_quadtree_representation();
 }
+
 
 void DestructibleMapNode::update_quadtree_representation()
 {
@@ -426,6 +426,10 @@ void DestructibleMapNode::update_quadtree_representation()
 	Material mat;
 	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
 	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
-	// TODO: update or delete old quadtree resource
+
+	if (this->quadtree_resource_)
+	{
+		delete this->quadtree_resource_;
+	}
 	this->quadtree_resource_ = new MeshResource(this->lines_, mat);
 }

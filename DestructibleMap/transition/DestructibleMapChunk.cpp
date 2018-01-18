@@ -10,7 +10,6 @@
 
 int map_chunks_drawn;
 
-ClipperLib::Path make_rect(const glm::ivec2 pos, const glm::ivec2 size);
 void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices);
 
 DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end)

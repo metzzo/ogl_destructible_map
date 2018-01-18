@@ -158,6 +158,7 @@
     <ClInclude Include="CameraNode.h" />
     <ClInclude Include="clipper.hpp" />
     <ClInclude Include="ColladaImporter.h" />
+    <ClInclude Include="DestructibleMapController.h" />
     <ClInclude Include="DestructibleMapNode.h" />
     <ClInclude Include="GeometryNode.h" />
     <ClInclude Include="GLDebugContext.h" />
@@ -192,6 +193,7 @@
     <ClCompile Include="CameraNode.cpp" />
     <ClCompile Include="clipper.cpp" />
     <ClCompile Include="ColladaImporter.cpp" />
+    <ClCompile Include="DestructibleMapController.cpp" />
     <ClCompile Include="DestructibleMapNode.cpp" />
     <ClCompile Include="GeometryNode.cpp" />
     <ClCompile Include="glad.c" />
