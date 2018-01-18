@@ -24,8 +24,9 @@ public:
 	{
 		auto sx = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_A) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_D);
 		auto sy = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_S) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_W);
+		auto zoom = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_Q) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_E);
 
-		auto trafo = Transformation::translate(glm::vec3(sx, sy, 0) * 5.0f * float(delta));
+		auto trafo = Transformation::translate(glm::vec3(sx, sy, zoom) * 5.0f * float(delta) * (1.0f + 10.0f*glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_LEFT_SHIFT)));
 
 		this->map_->apply_transformation(trafo);
 	}
@@ -48,7 +49,7 @@ int main()
 	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 5), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 	root->add_node(cam);
 	
-	auto map = new DestructibleMapNode("map");
+	auto map = new DestructibleMapNode("map",0.001f, 0.01f);
 	auto m = glm::translate(glm::scale(glm::mat4x4(), glm::vec3(0.025, 0.025, 0.0)), glm::vec3(-25, -25, 0));
 	map->set_transformation(m);
 	map->load_sample();

@@ -3,6 +3,8 @@
 #include "clipper.hpp"
 #include <glm/glm.hpp>
 
+extern int map_chunks_drawn;
+
 class DestructibleMapNode;
 class MeshResource;
 class RenderingEngine;
@@ -23,25 +25,32 @@ class DestructibleMapChunk
 	ClipperLib::Paths paths_;
 	std::vector<glm::vec2> vertices_;
 	MeshResource *mesh_;
+	double last_modify_;
+	bool is_cached_;
+	bool initialized_;
 public:
+
 	explicit DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end);
 	DestructibleMapChunk();
 	~DestructibleMapChunk();
+	void init(RenderingEngine* engine);
 
 	void get_lines(std::vector<glm::vec2>& lines) const;
 
 	bool insert(const glm::vec2& point, const int max_points);
 
-	void apply_polygon(const ClipperLib::Paths &input_paths);
+	void remove_paths();
+	void apply_polygon(const double time, const ClipperLib::Paths &input_paths);
 
 	void query_range(const glm::vec2 &query_begin, const glm::vec2 &query_end, std::vector<DestructibleMapChunk*> &leaves);
+
+	DestructibleMapChunk *query_random();
 
 	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
 
 	void simplify();
 
 	void draw() const;
-	void init(RenderingEngine *engine);
 
 	void remove();
 

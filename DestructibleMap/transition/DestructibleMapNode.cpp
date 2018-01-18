@@ -7,10 +7,7 @@
 #include "MeshResource.h"
 #include <random>
 #include <limits>
-
-#define SCALE_FACTOR 1.0f //(1000.0f)
-#define SCALE_FACTOR_INV 1.0f //(1.0f/SCALE_FACTOR)
-
+#include <glm/gtc/quaternion.hpp>
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -30,11 +27,37 @@ void get_bounding_box(const ClipperLib::Path& polygon, glm::ivec2& begin, glm::i
 	}
 }
 
-ClipperLib::Path make_rect(const int x, const int y, const int w, const int h)
+ClipperLib::Path make_rect(const glm::ivec2 pos, const glm::ivec2 size)
 {
 	ClipperLib::Path rect;
-	rect << ClipperLib::IntPoint(x, y) << ClipperLib::IntPoint(x + w, y) << ClipperLib::IntPoint(x + w, y + h) << ClipperLib::IntPoint(x, y + h);
+	rect << 
+		ClipperLib::IntPoint(pos.x, pos.y) << 
+		ClipperLib::IntPoint(pos.x + size.x, pos.y) << 
+		ClipperLib::IntPoint(pos.x + size.x, pos.y + size.y) << 
+		ClipperLib::IntPoint(pos.x, pos.y + size.y);
 	return rect;
+}
+
+ClipperLib::Path make_circle(const glm::ivec2 pos, const float radius, const int num_of_points)
+{
+	auto angle_step = glm::radians(360.0f) / num_of_points;
+	auto quat = glm::quat(glm::vec3(0.0f, 0.0f, angle_step));
+	auto points = std::vector<glm::vec3>(num_of_points + 1);
+	points.push_back(glm::vec3(0, 0, 0));
+	points.push_back(glm::vec3(0, radius, 0));
+	points.push_back(quat * glm::vec3(0, radius, 0));
+	
+	for (int i = 0; i < num_of_points - 1; i++)
+	{
+		points.push_back(quat * points[points.size() - 1]);
+	}
+
+	ClipperLib::Path circle;
+	for (auto &p : points)
+	{
+		circle.push_back(ClipperLib::IntPoint(p.x + pos.x, p.y + pos.y));
+	}
+	return circle;
 }
 
 std::vector<p2t::Point*>* path_to_polyline(ClipperLib::PolyNode *node)
@@ -68,7 +91,7 @@ void include_point_in_end_boundary(glm::vec2& end_boundary, const glm::vec2& pos
 	end_boundary.y = std::max(end_boundary.y, pos.y);
 }
 
-void generate_point_cloud(const std::vector<glm::vec2> &vertices, std::vector<glm::vec2> &points)
+void generate_point_cloud(float triangle_area_ratio, const std::vector<glm::vec2> &vertices, std::vector<glm::vec2> &points)
 {
 	std::random_device seeder;
 	std::mt19937 engine(seeder());
@@ -88,8 +111,7 @@ void generate_point_cloud(const std::vector<glm::vec2> &vertices, std::vector<gl
 		points.push_back(center);
 
 		// get approximate density distribution
-		const auto area = int(triangle_area(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y) / 10.0);
-		std::cout << "Area: " << area << std::endl;
+		const auto area = int(triangle_area(v0.x, v0.y, v1.x, v1.y, v2.x, v2.y) * triangle_area_ratio + 0.5);
 
 		for (auto distr = 0; distr < area; distr++) {
 			// Uniformly distribute points on triangle:
@@ -222,22 +244,22 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	paths_to_polytree(paths, poly_tree);
 	triangulate(poly_tree, this->vertices_);
 	generate_aabb(this->vertices_, boundary_begin, boundary_end);
-	print_vertices(this->vertices_);
 
 	this->quad_tree_ = DestructibleMapChunk(nullptr, boundary_begin, boundary_end);
 
 	std::cout << "Generating Point Cloud" << std::endl;
-	generate_point_cloud(this->vertices_, this->points_);
+	generate_point_cloud(this->triangle_area_ratio_, this->vertices_, this->points_);
 
 	std::cout << "Generating Quad Tree" << std::endl;
+	const int count = std::max(this->points_.size() * points_per_leaf_ratio_, 1.0f);
 	for (auto& point : this->points_)
 	{
 		// 0.1% of points are allowed per quad tree
-		this->quad_tree_.insert(point, this->points_.size() / 1000.0);
+		this->quad_tree_.insert(point, count);
 	}
 
 	std::cout << "Applying Polygon" << std::endl;
-	this->quad_tree_.apply_polygon(paths);
+	this->quad_tree_.apply_polygon(glfwGetTime(), paths);
 
 	Material mat;
 	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
@@ -256,11 +278,13 @@ std::vector<IDrawable*> DestructibleMapNode::get_drawables()
 	return{ this };
 }
 
-DestructibleMapNode::DestructibleMapNode(const std::string& name) : TransformationNode(name)
+DestructibleMapNode::DestructibleMapNode(const std::string& name, float triangle_area_ratio, float points_per_leaf_ratio) : TransformationNode(name)
 {
 	this->total_map_resource_ = nullptr;
 	this->point_distribution_resource_ = nullptr;
 	this->quadtree_resource_ = nullptr;
+	this->triangle_area_ratio_ = triangle_area_ratio;
+	this->points_per_leaf_ratio_ = points_per_leaf_ratio;
 }
 
 
@@ -279,12 +303,13 @@ void DestructibleMapNode::load_from_svg(const std::string& path)
 
 void DestructibleMapNode::load_sample()
 {
-	const int num_rects = 50;
-	const int width = 1000;
-	const int height = 1000;
+	const int num_rects = 100;
+	const int num_circle = 100;
+	const int width = 3000;
+	const int height = 3000;
 
-	const int rect_min_size = 5;
-	const int rect_max_size = 50;
+	const int rect_min_size = 10;
+	const int rect_max_size = 200;
 
 	ClipperLib::Paths paths(num_rects);
 
@@ -295,10 +320,20 @@ void DestructibleMapNode::load_sample()
 		auto w = rect_min_size + rand() % (rect_max_size - rect_min_size);
 		auto h = rect_min_size + rand() % (rect_max_size - rect_min_size);
 		paths.push_back(make_rect(
-			pos_x*SCALE_FACTOR,
-			pos_y*SCALE_FACTOR,
-			(pos_x + w)*SCALE_FACTOR,
-			(pos_y + h)*SCALE_FACTOR
+			glm::ivec2(pos_x*SCALE_FACTOR, pos_y*SCALE_FACTOR),
+			glm::ivec2(w*SCALE_FACTOR, h*SCALE_FACTOR)
+		));
+	}
+
+	for (auto i = 0; i < num_circle; i++)
+	{
+		auto pos_x = rand() % width;
+		auto pos_y = rand() % height;
+		auto radius = rect_min_size + rand() % (rect_max_size - rect_min_size);
+		paths.push_back(make_circle(
+			glm::ivec2(pos_x*SCALE_FACTOR, pos_y*SCALE_FACTOR),
+			radius*SCALE_FACTOR,
+			32
 		));
 	}
 
@@ -316,6 +351,8 @@ void DestructibleMapNode::init(RenderingEngine* rendering_engine)
 
 void DestructibleMapNode::draw(ShaderResource* shader) const
 {
+	map_chunks_drawn = 0;
+
 	bool point_display;
 
 	const auto trafo = this->get_transformation();
