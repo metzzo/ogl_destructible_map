@@ -2,7 +2,7 @@
 
 #include "clipper.hpp"
 #include <glm/glm.hpp>
-#include "CameraNode.h"
+#include <glad/glad.h>
 
 extern int map_chunks_drawn;
 

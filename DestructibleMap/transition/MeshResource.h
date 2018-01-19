@@ -1,6 +1,6 @@
 #pragma once
 #include "IResource.h"
-#include "glheaders.h"
+#include <glad/glad.h>
 #include "Material.h"
 #include <vector>
 

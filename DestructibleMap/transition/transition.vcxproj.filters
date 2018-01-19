@@ -19,9 +19,6 @@
     <Filter Include="Headerdateien\SceneGraph">
       <UniqueIdentifier>{c78b48d3-0e02-4b8a-a649-8d2c0948e381}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Headerdateien\Interfaces">
-      <UniqueIdentifier>{81453a40-f409-42eb-90fe-73dc08be5c80}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Headerdateien\Resource">
       <UniqueIdentifier>{81e073f8-db73-49c3-8829-d6bce12c2cce}</UniqueIdentifier>
     </Filter>
@@ -54,35 +51,8 @@
     <ClInclude Include="targetver.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="GroupNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="Node.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
     <ClInclude Include="RenderingEngine.h">
       <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="GeometryNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderingNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="IDrawable.h">
-      <Filter>Headerdateien\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="CameraNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="IResource.h">
-      <Filter>Headerdateien\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="MeshResource.h">
-      <Filter>Headerdateien\Resource</Filter>
-    </ClInclude>
-    <ClInclude Include="TextureResource.h">
-      <Filter>Headerdateien\Resource</Filter>
     </ClInclude>
     <ClInclude Include="ShaderResource.h">
       <Filter>Headerdateien\Resource\Shader</Filter>
@@ -90,31 +60,10 @@
     <ClInclude Include="MainShader.h">
       <Filter>Headerdateien\Resource\Shader</Filter>
     </ClInclude>
-    <ClInclude Include="ILightShader.h">
-      <Filter>Headerdateien\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="TransformationNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="LightNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimatorNode.h">
-      <Filter>Headerdateien\SceneGraph</Filter>
-    </ClInclude>
     <ClInclude Include="GLDebugContext.h">
       <Filter>Headerdateien\Utility</Filter>
     </ClInclude>
-    <ClInclude Include="ColladaImporter.h">
-      <Filter>Headerdateien\Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="glheaders.h">
-      <Filter>Headerdateien\Utility</Filter>
-    </ClInclude>
     <ClInclude Include="Material.h">
-      <Filter>Headerdateien\Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Transformation.h">
       <Filter>Headerdateien\Utility</Filter>
     </ClInclude>
     <ClInclude Include="DestructibleMapNode.h">
@@ -150,31 +99,19 @@
     <ClInclude Include="DestructibleMapController.h">
       <Filter>Headerdateien\SceneGraph</Filter>
     </ClInclude>
+    <ClInclude Include="MeshResource.h">
+      <Filter>Headerdateien\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureResource.h">
+      <Filter>Headerdateien\Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="IResource.h">
+      <Filter>Headerdateien\Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GroupNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="Node.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
     <ClCompile Include="RenderingEngine.cpp">
       <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="GeometryNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderingNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="CameraNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
-    <ClCompile Include="MeshResource.cpp">
-      <Filter>Quelldateien\Resource</Filter>
-    </ClCompile>
-    <ClCompile Include="TextureResource.cpp">
-      <Filter>Quelldateien\Resource</Filter>
     </ClCompile>
     <ClCompile Include="ShaderResource.cpp">
       <Filter>Quelldateien\Resource\Shader</Filter>
@@ -182,20 +119,11 @@
     <ClCompile Include="MainShader.cpp">
       <Filter>Quelldateien\Resource\Shader</Filter>
     </ClCompile>
-    <ClCompile Include="LightNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
     <ClCompile Include="glad.c">
       <Filter>Quelldateien\Utility</Filter>
     </ClCompile>
-    <ClCompile Include="AnimatorNode.cpp">
-      <Filter>Quelldateien\SceneGraph</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="Transformation.cpp">
-      <Filter>Quelldateien\Utility</Filter>
     </ClCompile>
     <ClCompile Include="DestructibleMapNode.cpp">
       <Filter>Quelldateien\SceneGraph</Filter>
@@ -223,6 +151,12 @@
     </ClCompile>
     <ClCompile Include="DestructibleMapController.cpp">
       <Filter>Quelldateien\SceneGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshResource.cpp">
+      <Filter>Quelldateien\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureResource.cpp">
+      <Filter>Quelldateien\Resource</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

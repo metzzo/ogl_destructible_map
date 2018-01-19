@@ -252,10 +252,6 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 	this->vertices_.clear();
 	triangulate(poly_tree, this->vertices_);
 
-	Material mat;
-	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
-	mat.set_ambient_color(glm::vec3(0.0, 1.0, 0.1));
-
 	if (this->raw_vertices_ != nullptr) {
 		delete this->raw_vertices_;
 	}

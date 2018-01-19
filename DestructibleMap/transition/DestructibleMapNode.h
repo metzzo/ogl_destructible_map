@@ -1,20 +1,16 @@
 #pragma once
 #include "clipper.hpp"
-#include "IDrawable.h"
 #include "DestructibleMapChunk.h"
-#include "TransformationNode.h"
-#include "AnimatorNode.h"
 
 #define SCALE_FACTOR (1000.0f)
 #define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
 
+class ShaderResource;
 ClipperLib::Path make_rect(const glm::ivec2 pos, const glm::ivec2 size);
 ClipperLib::Path make_circle(const glm::ivec2 pos, const float radius, const int num_of_points);
 
 class MeshResource;
-class DestructibleMapNode :
-	public IDrawable,
-	public TransformationNode
+class DestructibleMapNode
 {
 	glm::mat4 trafo_;
 	glm::mat4 itrafo_;
@@ -36,11 +32,10 @@ public:
 	void load_from_svg(const std::string& path);
 	void load_sample();
 
-	void init(RenderingEngine* rendering_engine) override;
+	void init(RenderingEngine* rendering_engine);
 
-	std::vector<IDrawable*> get_drawables() override;
 	
-	void draw(ShaderResource* shader) const override;
+	void draw(ShaderResource* shader) const;
 
 	void apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type);
 

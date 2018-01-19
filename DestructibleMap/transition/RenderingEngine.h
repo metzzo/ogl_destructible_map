@@ -1,54 +1,49 @@
 #pragma once
-#include <glm/vec2.hpp>
-#include <vector>
 #include "GLDebugContext.h"
-class GroupNode;
-class IResource;
-class IDrawable;
-class RenderingNode;
+#include <glm/matrix.hpp>
+#include "DestructibleMapChunk.h"
+#include <GLFW/glfw3.h>
+
 class MainShader;
-class LightNode;
-class AnimatorNode;
 
 class RenderingEngine
 {
-	GroupNode *root_node_;
-
-	std::vector<IDrawable*> drawables_;
-	std::vector<RenderingNode*> rendering_nodes_;
-	std::vector<IResource*>  resources_;
-	std::vector<LightNode*> light_nodes_;
-	std::vector<AnimatorNode*> animator_nodes_;
-
 	glm::ivec2 viewport_;
 	bool fullscreen_;
 	int refresh_rate_;
 
-	MainShader *main_shader_;
 	GLFWwindow* window_;
+
+	glm::mat4 projection_matrix_;
+	glm::mat4 view_matrix_;
 public:
 	explicit RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int refresh_rate);
 	~RenderingEngine();
 
-	void register_resource(IResource *resource);
-
 	void run();
-
-	GroupNode* get_root_node() const
-	{
-		return this->root_node_;
-	}
 
 	const glm::ivec2& get_viewport() const
 	{
 		return viewport_;
 	}
 
-	MainShader *get_main_shader() const
+	GLFWwindow* get_window() const;
+
+	void set_camera(glm::mat4 projection_matrix, glm::mat4 view_matrix);
+
+	const glm::mat4 &get_projection_matrix() const
 	{
-		return this->main_shader_;
+		return this->projection_matrix_;
 	}
 
-	GLFWwindow* get_window() const;
+	const glm::mat4 &get_view_matrix() const
+	{
+		return this->view_matrix_;
+	}
+
+	void set_view_matrix(const glm::mat4 &trafo) 
+	{
+		this->view_matrix_ = trafo;
+	}
 };
 

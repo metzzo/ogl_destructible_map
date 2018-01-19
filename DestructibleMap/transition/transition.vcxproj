@@ -154,24 +154,14 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AnimatorNode.h" />
-    <ClInclude Include="CameraNode.h" />
     <ClInclude Include="clipper.hpp" />
-    <ClInclude Include="ColladaImporter.h" />
     <ClInclude Include="DestructibleMapController.h" />
     <ClInclude Include="DestructibleMapNode.h" />
-    <ClInclude Include="GeometryNode.h" />
     <ClInclude Include="GLDebugContext.h" />
-    <ClInclude Include="glheaders.h" />
-    <ClInclude Include="GroupNode.h" />
-    <ClInclude Include="IDrawable.h" />
-    <ClInclude Include="ILightShader.h" />
     <ClInclude Include="IResource.h" />
-    <ClInclude Include="LightNode.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="MeshResource.h" />
-    <ClInclude Include="Node.h" />
     <ClInclude Include="MainShader.h" />
+    <ClInclude Include="MeshResource.h" />
     <ClInclude Include="poly2tri\common\shapes.h" />
     <ClInclude Include="poly2tri\common\utils.h" />
     <ClInclude Include="poly2tri\poly2tri.h" />
@@ -181,26 +171,17 @@
     <ClInclude Include="poly2tri\sweep\sweep_context.h" />
     <ClInclude Include="DestructibleMapChunk.h" />
     <ClInclude Include="RenderingEngine.h" />
-    <ClInclude Include="RenderingNode.h" />
     <ClInclude Include="ShaderResource.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextureResource.h" />
-    <ClInclude Include="Transformation.h" />
-    <ClInclude Include="TransformationNode.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AnimatorNode.cpp" />
-    <ClCompile Include="CameraNode.cpp" />
     <ClCompile Include="clipper.cpp" />
     <ClCompile Include="DestructibleMapController.cpp" />
     <ClCompile Include="DestructibleMapNode.cpp" />
-    <ClCompile Include="GeometryNode.cpp" />
     <ClCompile Include="glad.c" />
-    <ClCompile Include="GroupNode.cpp" />
-    <ClCompile Include="LightNode.cpp" />
-    <ClCompile Include="MeshResource.cpp" />
-    <ClCompile Include="Node.cpp" />
     <ClCompile Include="MainShader.cpp" />
+    <ClCompile Include="MeshResource.cpp" />
     <ClCompile Include="poly2tri\common\shapes.cc" />
     <ClCompile Include="poly2tri\sweep\advancing_front.cc" />
     <ClCompile Include="poly2tri\sweep\cdt.cc" />
@@ -208,11 +189,9 @@
     <ClCompile Include="poly2tri\sweep\sweep_context.cc" />
     <ClCompile Include="DestructibleMapChunk.cpp" />
     <ClCompile Include="RenderingEngine.cpp" />
-    <ClCompile Include="RenderingNode.cpp" />
     <ClCompile Include="ShaderResource.cpp" />
-    <ClCompile Include="TextureResource.cpp" />
-    <ClCompile Include="Transformation.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TextureResource.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

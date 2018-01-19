@@ -1,35 +1,22 @@
 #include "RenderingEngine.h"
-#include "RenderingNode.h"
-#include "glheaders.h"
-#include <iostream>
-#include "GroupNode.h"
-#include "IResource.h"
-#include "MainShader.h"
 #include "GLDebugContext.h"
-#include "AnimatorNode.h"
+#include <iostream>
+#include "MainShader.h"
 #include "DestructibleMapChunk.h"
+#include "DestructibleMapController.h"
+#include "DestructibleMapNode.h"
 
 RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int refresh_rate)
 {
-	this->root_node_ = new GroupNode("root");
 	this->viewport_ = viewport;
 	this->fullscreen_ = fullscreen;
 	this->refresh_rate_ = refresh_rate;
-
-	this->main_shader_ = new MainShader();
-	this->register_resource(this->main_shader_);
 
 	this->window_ = nullptr;
 }
 
 RenderingEngine::~RenderingEngine()
 {
-	delete this->root_node_;
-}
-
-void RenderingEngine::register_resource(IResource* resource)
-{
-	this->resources_.push_back(resource);
 }
 
 void error_callback(int error, const char* description)
@@ -98,17 +85,15 @@ void RenderingEngine::run()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
-	for (auto& resource : resources_)
-	{
-		resource->init();
-	}
+	auto map = new DestructibleMapNode("map", 0.001f, 0.01f);
+	map->load_sample();
+	map->init(this);
 
-	this->root_node_->init(this);
+	auto controller = new DestructibleMapController("map controller", map);
+	controller->init(this);
 
-	this->drawables_ = this->root_node_->get_drawables();
-	this->rendering_nodes_ = this->root_node_->get_rendering_nodes();
-	this->light_nodes_ = this->root_node_->get_light_nodes();
-	this->animator_nodes_ = this->root_node_->get_animator_nodes();
+	auto main_shader = new MainShader();
+	main_shader->init();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	double last_time = glfwGetTime();
@@ -127,27 +112,32 @@ void RenderingEngine::run()
 			glfwSetWindowShouldClose(this->window_, true);
 		}
 
-		for (auto& animator_node : this->animator_nodes_)
-		{
-			animator_node->update(delta);
-		}
+		controller->update(delta);
 
-		for (auto& rendering_node : this->rendering_nodes_)
-		{
-			rendering_node->render(this->drawables_, this->light_nodes_);
-		}
+		glViewport(0, 0, this->viewport_.x, this->viewport_.y);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		main_shader->use();
+		main_shader->set_camera_uniforms(this->view_matrix_, this->projection_matrix_);
+		map->draw(main_shader);
 
 		glfwSwapBuffers(this->window_);
 		glfwPollEvents();
 	}
 	glfwTerminate();
 
-	for (auto& resource : resources_) {
-		delete resource;
-	}
+	delete map;
+	delete controller;
+	delete main_shader;
 }
 
 GLFWwindow* RenderingEngine::get_window() const
 {
 	return this->window_;
+}
+
+void RenderingEngine::set_camera( glm::mat4 projection_matrix, glm::mat4 view_matrix)
+{
+	this->projection_matrix_ = projection_matrix;
+	this->view_matrix_ = view_matrix;
 }

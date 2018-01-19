@@ -1,19 +1,19 @@
 #pragma once
-#include "AnimatorNode.h"
-
+#include <glm/matrix.hpp>
+#include <string>
+class RenderingEngine;
 class DestructibleMapNode;
-class CameraNode;
 
-class DestructibleMapController :
-	public AnimatorNode
+class DestructibleMapController
 {
-	CameraNode* cam_;
 	glm::mat4 proj_inverse_;
 	DestructibleMapNode* map_;
+	RenderingEngine* rendering_engine_;
 public:
-	explicit DestructibleMapController(const std::string &name, CameraNode *cam, DestructibleMapNode *map_);
+	explicit DestructibleMapController(const std::string &name, DestructibleMapNode *map_);
 	~DestructibleMapController();
 
-	void update(double delta) override;
+	void update(double delta);
+	void init(RenderingEngine* rendering_engine);
 };
 

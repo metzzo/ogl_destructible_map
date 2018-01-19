@@ -8,6 +8,7 @@
 #include <random>
 #include <limits>
 #include <glm/gtc/quaternion.hpp>
+#include <GLFW/glfw3.h>
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -268,13 +269,7 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 
 	this->update_quadtree_representation();
 }
-
-std::vector<IDrawable*> DestructibleMapNode::get_drawables()
-{
-	return{ this };
-}
-
-DestructibleMapNode::DestructibleMapNode(const std::string& name, float triangle_area_ratio, float points_per_leaf_ratio) : TransformationNode(name)
+DestructibleMapNode::DestructibleMapNode(const std::string& name, float triangle_area_ratio, float points_per_leaf_ratio)
 {
 	this->point_distribution_resource_ = nullptr;
 	this->quadtree_resource_ = nullptr;
@@ -348,8 +343,6 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 	map_chunks_drawn = 0;
 
 	bool point_display;
-
-	const auto trafo = this->get_transformation();
 
 	point_display = true;
 	shader->set_model_uniforms(this, &point_display);

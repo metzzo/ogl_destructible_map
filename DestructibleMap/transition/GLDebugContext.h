@@ -1,7 +1,7 @@
 #pragma once
-#include "glheaders.h"
 #include <sstream>
 #include <iostream>
+#include <glad/glad.h>
 
 static std::string FormatDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, const char* msg) {
 	if (id == 131185)
