@@ -1,4 +1,4 @@
-#include "DestructibleMapNode.h"
+#include "DestructibleMap.h"
 #include "clipper.hpp"
 #include <iostream>
 #include "poly2tri/sweep/cdt.h"
@@ -9,6 +9,8 @@
 #include <limits>
 #include <glm/gtc/quaternion.hpp>
 #include <GLFW/glfw3.h>
+#include "DestructibleMapShader.h"
+#include "RenderingEngine.h"
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -233,7 +235,7 @@ void paths_to_polytree(const ClipperLib::Paths &paths, ClipperLib::PolyTree &pol
 	}
 }
 
-void DestructibleMapNode::load(ClipperLib::Paths paths)
+void DestructibleMap::load(ClipperLib::Paths paths)
 {
 	std::cout << "Load Map" << std::endl;
 
@@ -262,27 +264,28 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	std::cout << "Applying Polygon" << std::endl;
 	this->quad_tree_.apply_polygon(glfwGetTime(), paths);
 
-	Material mat;
-	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
-	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
-	this->point_distribution_resource_ = new MeshResource(this->points_, mat);
+	this->point_distribution_resource_ = new MeshResource(this->points_);
 
 	this->update_quadtree_representation();
 }
-DestructibleMapNode::DestructibleMapNode(const std::string& name, float triangle_area_ratio, float points_per_leaf_ratio)
+
+DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_leaf_ratio)
 {
 	this->point_distribution_resource_ = nullptr;
 	this->quadtree_resource_ = nullptr;
 	this->triangle_area_ratio_ = triangle_area_ratio;
 	this->points_per_leaf_ratio_ = points_per_leaf_ratio;
+
+	this->map_shader_ = new DestructibleMapShader();
+	map_shader_->init();
 }
 
 
-DestructibleMapNode::~DestructibleMapNode()
+DestructibleMap::~DestructibleMap()
 {
 }
 
-void DestructibleMapNode::load_from_svg(const std::string& path)
+void DestructibleMap::load_from_svg(const std::string& path)
 {
 	ClipperLib::Paths paths;
 
@@ -291,7 +294,7 @@ void DestructibleMapNode::load_from_svg(const std::string& path)
 	load(paths);
 }
 
-void DestructibleMapNode::load_sample()
+void DestructibleMap::load_sample()
 {
 	const int num_rects = 50;
 	const int num_circle = 50;
@@ -331,40 +334,48 @@ void DestructibleMapNode::load_sample()
 }
 
 
-void DestructibleMapNode::init(RenderingEngine* rendering_engine)
+void DestructibleMap::init(RenderingEngine* rendering_engine)
 {
+	this->rendering_engine_ = rendering_engine;
+
 	this->point_distribution_resource_->init();
 	this->quadtree_resource_->init();
 	this->quad_tree_.init(rendering_engine);
+
+	glPointSize(8);
 }
 
-void DestructibleMapNode::draw(ShaderResource* shader) const
+void DestructibleMap::draw() const
 {
 	map_chunks_drawn = 0;
 
-	bool point_display;
-
-	point_display = true;
-	shader->set_model_uniforms(this, &point_display);
+	this->map_shader_->use();
+	this->map_shader_->set_camera_uniforms(this->rendering_engine_->get_view_matrix(), this->rendering_engine_->get_projection_matrix());
+	this->map_shader_->set_base_color(glm::vec3(1.0, 0.0, 0.0));
 
 	glBindVertexArray(this->quadtree_resource_->get_resource_id());
 	glDrawArrays(GL_LINES, 0, this->lines_.size());
-	glBindVertexArray(0);
 
-	glPointSize(8);
 	glBindVertexArray(this->point_distribution_resource_->get_resource_id());
 	glDrawArrays(GL_POINTS, 0, this->points_.size());
-	glBindVertexArray(0);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-	point_display = false;
-	shader->set_model_uniforms(this, &point_display);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	if (glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_1))
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	} else
+	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	}
+
+	this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
 	this->quad_tree_.draw();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 	glBindVertexArray(0);
 }
 
-void DestructibleMapNode::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
+void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
 {
 	glm::ivec2 begin, end;
 
@@ -400,18 +411,14 @@ void DestructibleMapNode::apply_polygon_operation(const ClipperLib::Path polygon
 }
 
 
-void DestructibleMapNode::update_quadtree_representation()
+void DestructibleMap::update_quadtree_representation()
 {
 	this->lines_.clear();
 	this->quad_tree_.get_lines(this->lines_);
-
-	Material mat;
-	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
-	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
 
 	if (this->quadtree_resource_)
 	{
 		delete this->quadtree_resource_;
 	}
-	this->quadtree_resource_ = new MeshResource(this->lines_, mat);
+	this->quadtree_resource_ = new MeshResource(this->lines_);
 }

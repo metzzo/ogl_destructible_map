@@ -2,7 +2,7 @@
 #include "RenderingEngine.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "DestructibleMapNode.h"
+#include "DestructibleMap.h"
 #include "DestructibleMapController.h"
 
 int main()

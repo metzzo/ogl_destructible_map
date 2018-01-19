@@ -2,7 +2,7 @@
 #include <cstring>
 #include <glad/glad.h>
 
-MeshResource::MeshResource(float *vertices, float *normals, float *uvs, const int num_vertices, unsigned int *indices, const int num_indices, const Material& material) {
+MeshResource::MeshResource(float *vertices, float *normals, float *uvs, const int num_vertices, unsigned int *indices, const int num_indices) {
 	this->vao_ = -1;
 	this->vbo_positions_ = -1;
 	this->vbo_normals_ = -1;
@@ -15,10 +15,9 @@ MeshResource::MeshResource(float *vertices, float *normals, float *uvs, const in
 	this->num_vertices_ = num_vertices;
 	this->indices_ = indices;
 	this->num_indices_ = num_indices;
-	this->material_ = material;
 }
 
-MeshResource::MeshResource(std::vector<glm::vec2> vertices, const Material& material)
+MeshResource::MeshResource(std::vector<glm::vec2> vertices)
 {
 	const auto global_vertices = new float[vertices.size() * 3];
 	const auto global_normal = new float[vertices.size() * 3];
@@ -53,7 +52,6 @@ MeshResource::MeshResource(std::vector<glm::vec2> vertices, const Material& mate
 	this->num_vertices_ = vertices.size();
 	this->indices_ = nullptr;
 	this->num_indices_ = 0;
-	this->material_ = material;
 }
 
 

@@ -6,7 +6,7 @@
 #include <glad/glad.h>
 #include "ShaderResource.h"
 #include <random>
-#include "DestructibleMapNode.h"
+#include "DestructibleMap.h"
 
 int map_chunks_drawn;
 

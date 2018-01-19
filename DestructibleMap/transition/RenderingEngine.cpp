@@ -1,10 +1,9 @@
 #include "RenderingEngine.h"
 #include "GLDebugContext.h"
 #include <iostream>
-#include "MainShader.h"
 #include "DestructibleMapChunk.h"
 #include "DestructibleMapController.h"
-#include "DestructibleMapNode.h"
+#include "DestructibleMap.h"
 
 RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int refresh_rate)
 {
@@ -85,15 +84,12 @@ void RenderingEngine::run()
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
-	auto map = new DestructibleMapNode("map", 0.001f, 0.01f);
+	auto map = new DestructibleMap(0.001f, 0.01f);
 	map->load_sample();
 	map->init(this);
 
-	auto controller = new DestructibleMapController("map controller", map);
+	auto controller = new DestructibleMapController(map);
 	controller->init(this);
-
-	auto main_shader = new MainShader();
-	main_shader->init();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	double last_time = glfwGetTime();
@@ -117,9 +113,7 @@ void RenderingEngine::run()
 		glViewport(0, 0, this->viewport_.x, this->viewport_.y);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		main_shader->use();
-		main_shader->set_camera_uniforms(this->view_matrix_, this->projection_matrix_);
-		map->draw(main_shader);
+		map->draw();
 
 		glfwSwapBuffers(this->window_);
 		glfwPollEvents();
@@ -128,7 +122,6 @@ void RenderingEngine::run()
 
 	delete map;
 	delete controller;
-	delete main_shader;
 }
 
 GLFWwindow* RenderingEngine::get_window() const

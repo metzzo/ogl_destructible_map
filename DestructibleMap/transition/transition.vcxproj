@@ -156,11 +156,10 @@
   <ItemGroup>
     <ClInclude Include="clipper.hpp" />
     <ClInclude Include="DestructibleMapController.h" />
-    <ClInclude Include="DestructibleMapNode.h" />
+    <ClInclude Include="DestructibleMap.h" />
     <ClInclude Include="GLDebugContext.h" />
     <ClInclude Include="IResource.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="MainShader.h" />
+    <ClInclude Include="DestructibleMapShader.h" />
     <ClInclude Include="MeshResource.h" />
     <ClInclude Include="poly2tri\common\shapes.h" />
     <ClInclude Include="poly2tri\common\utils.h" />
@@ -178,9 +177,9 @@
   <ItemGroup>
     <ClCompile Include="clipper.cpp" />
     <ClCompile Include="DestructibleMapController.cpp" />
-    <ClCompile Include="DestructibleMapNode.cpp" />
+    <ClCompile Include="DestructibleMap.cpp" />
     <ClCompile Include="glad.c" />
-    <ClCompile Include="MainShader.cpp" />
+    <ClCompile Include="DestructibleMapShader.cpp" />
     <ClCompile Include="MeshResource.cpp" />
     <ClCompile Include="poly2tri\common\shapes.cc" />
     <ClCompile Include="poly2tri\sweep\advancing_front.cc" />

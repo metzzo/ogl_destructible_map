@@ -2,15 +2,15 @@
 #include <glm/matrix.hpp>
 #include <string>
 class RenderingEngine;
-class DestructibleMapNode;
+class DestructibleMap;
 
 class DestructibleMapController
 {
 	glm::mat4 proj_inverse_;
-	DestructibleMapNode* map_;
+	DestructibleMap* map_;
 	RenderingEngine* rendering_engine_;
 public:
-	explicit DestructibleMapController(const std::string &name, DestructibleMapNode *map_);
+	explicit DestructibleMapController(DestructibleMap *map_);
 	~DestructibleMapController();
 
 	void update(double delta);

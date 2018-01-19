@@ -1,8 +1,8 @@
 #pragma once
 #include "IResource.h"
 #include <glad/glad.h>
-#include "Material.h"
 #include <vector>
+#include <glm/detail/type_vec2.hpp>
 
 class MeshResource : public IResource
 {
@@ -18,12 +18,9 @@ class MeshResource : public IResource
 	GLuint vbo_normals_;
 	GLuint vbo_uvs_;
 	GLuint ebo_;
-
-	Material material_;
-
 public:
-	MeshResource(float *vertices, float *normals, float *uvs, int num_vertices, unsigned int *indices, int num_indices, const Material& material);
-	MeshResource(std::vector<glm::vec2> vertices, const Material &material);
+	MeshResource(float *vertices, float *normals, float *uvs, int num_vertices, unsigned int *indices, int num_indices);
+	MeshResource(std::vector<glm::vec2> vertices);
 	~MeshResource();
 
 	int get_resource_id() const override;
@@ -37,10 +34,6 @@ public:
 	int get_num_vertices() const
 	{
 		return num_vertices_;
-	}
-
-	const Material& get_material() const {
-		return material_;
 	}
 };
 

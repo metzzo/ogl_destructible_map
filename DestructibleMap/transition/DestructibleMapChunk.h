@@ -6,7 +6,7 @@
 
 extern int map_chunks_drawn;
 
-class DestructibleMapNode;
+class DestructibleMap;
 class RenderingEngine;
 
 class DestructibleMapChunk
@@ -57,5 +57,5 @@ public:
 
 	void remove();
 
-	friend DestructibleMapNode;
+	friend DestructibleMap;
 };

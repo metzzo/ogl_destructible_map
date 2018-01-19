@@ -6,7 +6,7 @@
 
 class RenderingNode;
 class GeometryNode;
-class DestructibleMapNode;
+class DestructibleMap;
 
 class ShaderResource : IResource
 {
@@ -29,6 +29,5 @@ public:
 	int get_resource_id() const override;
 	void init() override;
 	virtual void set_camera_uniforms(const glm::mat4 &view_matrix, const glm::mat4 &projection_matrix) = 0;
-	virtual void set_model_uniforms(const DestructibleMapNode* node, void * param = nullptr) = 0;
 };
 

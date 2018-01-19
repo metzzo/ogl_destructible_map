@@ -4,7 +4,7 @@
 #include "DestructibleMapChunk.h"
 #include <GLFW/glfw3.h>
 
-class MainShader;
+class DestructibleMapShader;
 
 class RenderingEngine
 {

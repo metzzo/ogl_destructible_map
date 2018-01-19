@@ -1,15 +1,14 @@
 #version 330 core
 layout (location = 0) in vec2 aPos;
 
-struct MVP {
-	mat4 model;
+struct VP {
 	mat4 view;
 	mat4 projection;
 };
 
-uniform MVP mvp;
+uniform VP vp;
 
 void main()
 {
-	gl_Position = mvp.projection * mvp.view * vec4(vs_out.frag_pos, 1.0);
+	gl_Position = vp.projection * vp.view * vec4(aPos, 0.0, 1.0);
 }

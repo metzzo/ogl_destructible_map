@@ -1,10 +1,10 @@
 #include "DestructibleMapController.h"
 #include <GLFW/glfw3.h>
 #include "RenderingEngine.h"
-#include "DestructibleMapNode.h"
+#include "DestructibleMap.h"
 #include <glm/gtc/matrix_transform.hpp>
 
-DestructibleMapController::DestructibleMapController(const std::string& name, DestructibleMapNode *map) 
+DestructibleMapController::DestructibleMapController(DestructibleMap *map) 
 {
 	this->map_ = map;
 }
