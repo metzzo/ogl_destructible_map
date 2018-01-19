@@ -7,6 +7,7 @@
 #include "MainShader.h"
 #include "GLDebugContext.h"
 #include "AnimatorNode.h"
+#include "DestructibleMapChunk.h"
 
 RenderingEngine::RenderingEngine(const glm::ivec2 viewport, bool fullscreen, int refresh_rate)
 {

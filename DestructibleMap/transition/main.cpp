@@ -22,9 +22,9 @@ int main()
 
 	const auto cam = new CameraNode("MainCamera",
 		engine->get_viewport(),
-		glm::perspective(glm::radians(60.0f), float(WINDOW_WIDTH) / float(WINDOW_HEIGHT), 0.1f, 1000.0f)		
+		glm::perspective(glm::radians(60.0f), float(WINDOW_WIDTH) / float(WINDOW_HEIGHT), 0.1f, 5000.0f)		
 	);
-	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 50), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
+	cam->set_view_matrix(glm::lookAt(glm::vec3(0, 0, 100), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 	root->add_node(cam);
 	
 	auto map = new DestructibleMapNode("map",0.001f, 0.01f);

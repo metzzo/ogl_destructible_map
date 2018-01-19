@@ -185,9 +185,6 @@
     <ClCompile Include="LightNode.cpp">
       <Filter>Quelldateien\SceneGraph</Filter>
     </ClCompile>
-    <ClCompile Include="ColladaImporter.cpp">
-      <Filter>Quelldateien\Utility</Filter>
-    </ClCompile>
     <ClCompile Include="glad.c">
       <Filter>Quelldateien\Utility</Filter>
     </ClCompile>

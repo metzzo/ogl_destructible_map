@@ -2,11 +2,11 @@
 
 #include "clipper.hpp"
 #include <glm/glm.hpp>
+#include "CameraNode.h"
 
 extern int map_chunks_drawn;
 
 class DestructibleMapNode;
-class MeshResource;
 class RenderingEngine;
 
 class DestructibleMapChunk
@@ -24,10 +24,14 @@ class DestructibleMapChunk
 
 	ClipperLib::Paths paths_;
 	std::vector<glm::vec2> vertices_;
-	MeshResource *mesh_;
 	double last_modify_;
 	bool is_cached_;
 	bool initialized_;
+	GLuint vao_;
+	GLuint vbo_positions_;
+	float *raw_vertices_;
+
+	void constructor();
 public:
 
 	explicit DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end);
@@ -39,7 +43,6 @@ public:
 
 	bool insert(const glm::vec2& point, const int max_points);
 
-	void remove_paths();
 	void apply_polygon(const double time, const ClipperLib::Paths &input_paths);
 
 	void query_range(const glm::vec2 &query_begin, const glm::vec2 &query_end, std::vector<DestructibleMapChunk*> &leaves);

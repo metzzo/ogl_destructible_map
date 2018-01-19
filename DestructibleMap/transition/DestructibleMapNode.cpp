@@ -152,7 +152,7 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 					}
 					if (!child_node->Childs.size())
 					{
-						std::cout << "Expected only Empty Nodes." << std::endl;
+						std::cout << "Expected Nodes with Children." << std::endl;
 						continue;
 					}
 
@@ -251,7 +251,7 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	generate_point_cloud(this->triangle_area_ratio_, this->vertices_, this->points_);
 
 	std::cout << "Generating Quad Tree" << std::endl;
-	const int count = std::max(this->points_.size() * points_per_leaf_ratio_, 1.0f);
+	const int count = std::max(this->points_.size() * points_per_leaf_ratio_, 5.0f);
 	for (auto& point : this->points_)
 	{
 		// 0.1% of points are allowed per quad tree
@@ -266,10 +266,6 @@ void DestructibleMapNode::load(ClipperLib::Paths paths)
 	mat.set_ambient_color(glm::vec3(1.0, 0.1, 0.1));
 	this->point_distribution_resource_ = new MeshResource(this->points_, mat);
 
-	mat.set_diffuse_color(glm::vec3(0.5, 0.5, 0.5));
-	mat.set_ambient_color(glm::vec3(0.0, 1.0, 0.1));
-	this->total_map_resource_ = new MeshResource(this->vertices_, mat);
-
 	this->update_quadtree_representation();
 }
 
@@ -280,7 +276,6 @@ std::vector<IDrawable*> DestructibleMapNode::get_drawables()
 
 DestructibleMapNode::DestructibleMapNode(const std::string& name, float triangle_area_ratio, float points_per_leaf_ratio) : TransformationNode(name)
 {
-	this->total_map_resource_ = nullptr;
 	this->point_distribution_resource_ = nullptr;
 	this->quadtree_resource_ = nullptr;
 	this->triangle_area_ratio_ = triangle_area_ratio;
@@ -303,15 +298,15 @@ void DestructibleMapNode::load_from_svg(const std::string& path)
 
 void DestructibleMapNode::load_sample()
 {
-	const int num_rects = 100;
-	const int num_circle = 100;
+	const int num_rects = 50;
+	const int num_circle = 50;
 	const int width = 3000;
 	const int height = 3000;
 
 	const int rect_min_size = 10;
 	const int rect_max_size = 200;
 
-	ClipperLib::Paths paths(num_rects);
+	ClipperLib::Paths paths;
 
 	for (auto i = 0; i < num_rects; i++)
 	{
@@ -343,7 +338,6 @@ void DestructibleMapNode::load_sample()
 
 void DestructibleMapNode::init(RenderingEngine* rendering_engine)
 {
-	this->total_map_resource_->init();
 	this->point_distribution_resource_->init();
 	this->quadtree_resource_->init();
 	this->quad_tree_.init(rendering_engine);
@@ -372,12 +366,9 @@ void DestructibleMapNode::draw(ShaderResource* shader) const
 
 	point_display = false;
 	shader->set_model_uniforms(this, &point_display);
-	glBindVertexArray(this->total_map_resource_->get_resource_id());
-	//glDrawArrays(GL_TRIANGLES, 0, this->vertices_.size());
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	this->quad_tree_.draw();
 	glBindVertexArray(0);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void DestructibleMapNode::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
@@ -387,9 +378,7 @@ void DestructibleMapNode::apply_polygon_operation(const ClipperLib::Path polygon
 	get_bounding_box(polygon, begin, end);
 
 	std::vector<DestructibleMapChunk*> affected_leaves;
-	this->quad_tree_.query_range(begin, end, affected_leaves);
-
-	const auto size = end - begin;
+	this->quad_tree_.query_range(glm::vec2(begin) * SCALE_FACTOR_INV, glm::vec2(end) * SCALE_FACTOR_INV, affected_leaves);
 
 	for (auto &leave : affected_leaves)
 	{

@@ -3,9 +3,10 @@
 #include <string>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include "DestructibleMapNode.h"
+
 class RenderingNode;
 class GeometryNode;
+class DestructibleMapNode;
 
 class ShaderResource :
 	public IResource

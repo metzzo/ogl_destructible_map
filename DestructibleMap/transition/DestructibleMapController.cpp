@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include "RenderingEngine.h"
 #include "CameraNode.h"
+#include "DestructibleMapNode.h"
 
 DestructibleMapController::DestructibleMapController(const std::string& name, CameraNode *cam, DestructibleMapNode *map) : AnimatorNode(name)
 {
@@ -35,11 +36,12 @@ void DestructibleMapController::update(double delta)
 	if (t >= 0.000001)
 	{
 		auto pick_pos = origin + ray_world*t;
-		if (glfwGetMouseButton(this->get_rendering_engine()->get_window(), GLFW_MOUSE_BUTTON_1)) {
-			std::cout << "Picked " << pick_pos.x << " " << pick_pos.y << " " << pick_pos.z << std::endl;
-
-			auto circle = make_circle(glm::ivec2(pick_pos.x * SCALE_FACTOR, pick_pos.y * SCALE_FACTOR), 10, 16);
-			map_->apply_polygon_operation(circle, ClipperLib::ctUnion);
+		auto b1 = glfwGetMouseButton(this->get_rendering_engine()->get_window(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+		auto b2 = glfwGetMouseButton(this->get_rendering_engine()->get_window(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS;
+		if (b1 || b2) {
+			//std::cout << "Picked " << pick_pos.x << " " << pick_pos.y << " " << pick_pos.z << std::endl;
+			auto circle = make_circle(glm::ivec2(pick_pos.x * SCALE_FACTOR, pick_pos.y * SCALE_FACTOR), 10 * SCALE_FACTOR, 16);
+			map_->apply_polygon_operation(circle, b1 ? ClipperLib::ctDifference : ClipperLib::ctUnion);
 		}
 	}
 
@@ -47,7 +49,7 @@ void DestructibleMapController::update(double delta)
 	auto sy = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_S) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_W);
 	auto zoom = glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_Q) - glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_E);
 
-	auto trafo = Transformation::translate(-glm::vec3(sx, sy, zoom) * 5.0f * float(delta) * (1.0f + 10.0f*glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_LEFT_SHIFT)));
+	auto trafo = Transformation::translate(-glm::vec3(sx, sy, zoom) * 200.0f * float(delta) * (1.0f + 10.0f*glfwGetKey(this->get_rendering_engine()->get_window(), GLFW_KEY_LEFT_SHIFT)));
 
 	this->cam_->apply_transformation(trafo);
 }

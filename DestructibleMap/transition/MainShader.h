@@ -5,6 +5,7 @@
 #include "RenderingNode.h"
 
 class LightNode;
+class DestructibleMapNode;
 
 const unsigned int max_nr_lights = 10;
 class MainShader :

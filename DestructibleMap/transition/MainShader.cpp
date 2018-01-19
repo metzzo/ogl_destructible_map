@@ -1,5 +1,6 @@
 #include "MainShader.h"
 #include "LightNode.h"
+#include "DestructibleMapNode.h"
 
 MainShader::MainShader() : ShaderResource("assets/shaders/main_shader.vs", "assets/shaders/main_shader.fs")
 {
@@ -75,7 +76,7 @@ void MainShader::set_model_uniforms(const DestructibleMapNode* node, void * para
 	//Give Model to Shader
 	glUniformMatrix4fv(this->model_uniform_, 1, GL_FALSE, &node->get_transformation()[0][0]);
 	//Bind Texture and give it to Shader 
-	auto material = (static_cast<bool*>(param)[0] ? node->point_distribution_resource_ : node->total_map_resource_)->get_material();
+	auto material = (static_cast<bool*>(param)[0] ? node->point_distribution_resource_ : node->quadtree_resource_)->get_material();
 	const TextureResource* texture = material.get_texture();
 	if (texture != nullptr) {
 		texture->bind(0);
@@ -108,7 +109,7 @@ void MainShader::set_light_uniforms(const std::vector<LightNode*>& light_nodes)
 		assert(this->quadratic_uniform_[light_index] >= 0);
 		assert(this->diffuse_uniform_[light_index] >= 0);
 		assert(this->specular_uniform_[light_index] >= 0);
-
+		 
 		// for some fkin reasons, this needs to be temporarly stored in its own variable?!?!
 		glm::vec3 pos = light->get_position();
 		glm::vec3 dir = light->get_direction();

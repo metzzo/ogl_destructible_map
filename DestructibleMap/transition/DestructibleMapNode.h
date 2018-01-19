@@ -27,7 +27,6 @@ class DestructibleMapNode :
 
 	void load(ClipperLib::Paths poly_tree);
 public:
-	MeshResource* total_map_resource_;
 	MeshResource* point_distribution_resource_;
 	MeshResource* quadtree_resource_;
 
