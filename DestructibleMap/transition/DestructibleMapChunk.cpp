@@ -97,14 +97,7 @@ bool DestructibleMapChunk::insert(const glm::vec2& point, const int max_points)
 
 	if (this->north_west_ == nullptr)
 	{
-		const glm::vec2 size = (this->end_ - this->begin_) / float(2.0);
-		const glm::vec2 size_x = glm::vec2(size.x, 0);
-		const glm::vec2 size_y = glm::vec2(0, size.y);
-
-		this->north_west_ = new DestructibleMapChunk(this, this->begin_, this->begin_ + size);
-		this->north_east_ = new DestructibleMapChunk(this, this->begin_ + size_x, this->begin_ + size_x + size);
-		this->south_west_ = new DestructibleMapChunk(this, this->begin_ + size_y, this->begin_ + size_y + size);
-		this->south_east_ = new DestructibleMapChunk(this, this->begin_ + size, this->end_);
+		this->subdivide();
 
 		for (auto& old_points : this->points_)
 		{
@@ -132,8 +125,30 @@ bool DestructibleMapChunk::insert(const glm::vec2& point, const int max_points)
 	return false;
 }
 
+void DestructibleMapChunk::subdivide()
+{
+	const glm::vec2 size = (this->end_ - this->begin_) / 2.0f;
+	assert(size.x >= 0 && size.y >= 0);
+	const glm::vec2 size_x = glm::vec2(size.x, 0);
+	const glm::vec2 size_y = glm::vec2(0, size.y);
 
-void DestructibleMapChunk::apply_polygon(const double time, const ClipperLib::Paths &input_paths)
+	this->north_west_ = new DestructibleMapChunk(this, this->begin_, this->begin_ + size);
+	this->north_east_ = new DestructibleMapChunk(this, this->begin_ + size_x, this->begin_ + size_x + size);
+	this->south_west_ = new DestructibleMapChunk(this, this->begin_ + size_y, this->begin_ + size_y + size);
+	this->south_east_ = new DestructibleMapChunk(this, this->begin_ + size, this->end_);
+
+
+	this->north_west_->apply_polygon(this->paths_);
+	this->north_east_->apply_polygon(this->paths_);
+	this->south_west_->apply_polygon(this->paths_);
+	this->south_east_->apply_polygon(this->paths_);
+
+	this->paths_.clear();
+	this->vertices_.clear();
+}
+
+
+void DestructibleMapChunk::apply_polygon(const ClipperLib::Paths &input_paths)
 {
 	const glm::ivec2 quad_pos = glm::ivec2(this->begin_* SCALE_FACTOR);
 	const glm::ivec2 quad_size = glm::ivec2((this->end_ - this->begin_) * SCALE_FACTOR);
@@ -146,6 +161,7 @@ void DestructibleMapChunk::apply_polygon(const double time, const ClipperLib::Pa
 	c.StrictlySimple(true);
 	c.AddPaths(input_paths, ClipperLib::ptSubject, true);
 	c.AddPath(quad, ClipperLib::ptClip, true);
+
 	if (!c.Execute(ClipperLib::ctIntersection, result_poly_tree, ClipperLib::pftNonZero))
 	{
 		std::cout << "Could not create Polygon Tree" << std::endl;
@@ -159,12 +175,13 @@ void DestructibleMapChunk::apply_polygon(const double time, const ClipperLib::Pa
 	ClipperLib::Paths result_paths;
 	ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
+
 	if (this->north_west_)
 	{
-		this->north_west_->apply_polygon(time, result_paths);
-		this->north_east_->apply_polygon(time, result_paths);
-		this->south_west_->apply_polygon(time, result_paths);
-		this->south_east_->apply_polygon(time, result_paths);
+		this->north_west_->apply_polygon(result_paths);
+		this->north_east_->apply_polygon(result_paths);
+		this->south_west_->apply_polygon(result_paths);
+		this->south_east_->apply_polygon(result_paths);
 	}
 	else
 	{
@@ -195,34 +212,14 @@ void DestructibleMapChunk::query_range(const glm::vec2& query_begin, const glm::
 	}
 }
 
-DestructibleMapChunk *DestructibleMapChunk::query_random()
-{
-	if (this->north_west_)
-	{
-		DestructibleMapChunk *chunks[] = {
-			this->north_west_,
-			this->north_east_,
-			this->south_west_,
-			this->south_east_
-		};
-
-		return chunks[rand() % 4];
-	}
-	else
-	{
-		return this;
-	}
-}
-
 void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree)
 {
 	this->paths_ = paths;
 	this->vertices_.clear();
 	triangulate(poly_tree, this->vertices_);
 
-	this->mesh_dirty_ = true;
-	auto current = this->parent_;
-	while (current)
+	auto current = this;
+	while (current && !current->mesh_dirty_)
 	{
 		current->mesh_dirty_ = true;
 		current = current->parent_;
@@ -280,4 +277,39 @@ void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty
 void DestructibleMapChunk::update_batch(BatchInfo* info)
 {
 	this->batch_info_ = info;
+}
+
+DestructibleMapChunk* DestructibleMapChunk::query_chunk(glm::vec2 point)
+{
+	if (point.x < this->begin_.x || point.y < this->begin_.y || point.x > this->end_.x || point.y > this->end_.y)
+	{
+		return nullptr;
+	}
+
+	if (this->north_west_)
+	{
+		DestructibleMapChunk *chunk;
+		if ((chunk = this->north_west_->query_chunk(point)))
+		{
+			return chunk;
+		}
+		if ((chunk = this->north_east_->query_chunk(point)))
+		{
+			return chunk;
+		}
+		if ((chunk = this->south_west_->query_chunk(point)))
+		{
+			return chunk;
+		}
+		if ((chunk = this->south_east_->query_chunk(point)))
+		{
+			return chunk;
+		}
+
+		return nullptr;
+	}
+	else
+	{
+		return this;
+	}
 }

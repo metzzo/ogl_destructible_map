@@ -2,7 +2,7 @@
 
 // TODO: increase these sizes accordingly
 
-// how many vertices are allowed per chunk?
+// how many vertices are allowed per batch?
 #define VERTICES_PER_BATCH (1024)
 
 // if size of changed VBO is greater than threshold * VERTICES_PER_BATCH, just update entire VBO
@@ -37,7 +37,7 @@ public:
 	DestructibleMapDrawingBatch();
 	~DestructibleMapDrawingBatch();
 
-	void draw();
+	void draw(DestructibleMapShader *shader);
 	void init();
 	bool is_free(int num_vertices) const;
 	void alloc_chunk(DestructibleMapChunk *chunk);

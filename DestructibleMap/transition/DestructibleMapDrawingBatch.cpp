@@ -33,7 +33,7 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 	}
 }
 
-void DestructibleMapDrawingBatch::draw()
+void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 {
 	if (this->is_dirty_)
 	{
@@ -57,15 +57,38 @@ void DestructibleMapDrawingBatch::draw()
 			glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
 		}*/
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
+
+		// this does not fix the issue, therefore its not because the vertex_data is out of sync
+		for (auto &info : this->infos_)
+		{
+			for (auto i = info->offset; i < info->offset + info->size; i++)
+			{
+				auto vertex = info->chunk->vertices_[i - info->offset];
+
+				this->vertex_data_[i * 2] = vertex.x;
+				this->vertex_data_[i * 2 + 1] = vertex.y;
+			} 
+		}
+
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * this->allocated_ * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
 		this->is_dirty_ = false;
 		this->last_allocated_ = this->allocated_;
 	}
 
 	if (this->allocated_ > 0) {
+		for (auto &info : this->infos_)
+		{
+			if (info->chunk->highlighted_)
+			{
+				shader->set_base_color(glm::vec3(1.0, 1.0, 0.0));
+			}
+		}
+
 		map_draw_calls++;
 		glBindVertexArray(this->vao_);
 		glDrawArrays(GL_TRIANGLES, 0, this->allocated_ * 2);
+
+		shader->set_base_color(glm::vec3(0.0, 1.0, 0.0));
 	}
 }
 
@@ -101,7 +124,7 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	info->offset = this->allocated_;
 	info->size = new_vertices_count;
 
-	// update own array
+	// update array
 	for (auto i = 0; i < new_vertices_count; i++)
 	{
 		const auto vertex = chunk->vertices_[i];
@@ -125,6 +148,7 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 	assert(batch_index >= 0 && batch_size >= 0);
 	assert(info->batch == this);
 
+	// update array
 	for (auto i = batch_index + batch_size; i < this->allocated_; i++)
 	{
 		this->vertex_data_[(i - batch_size) * 2] = this->vertex_data_[i * 2];
