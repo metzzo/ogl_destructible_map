@@ -2,6 +2,7 @@
 
 #include "clipper.hpp"
 #include <glm/glm.hpp>
+#include "DestructibleMapDrawingBatch.h"
 
 extern int map_draw_calls;
 
@@ -27,9 +28,7 @@ class DestructibleMapChunk
 
 	bool mesh_dirty_;
 
-	DestructibleMapDrawingBatch *batch_;
-	int batch_index_;
-	int batch_size_;
+	BatchInfo *batch_info_;
 
 	void constructor();
 public:
@@ -54,19 +53,10 @@ public:
 
 	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
 
-	void update_batch(DestructibleMapDrawingBatch *batch, int batch_index, int batch_size);
-	DestructibleMapDrawingBatch* get_batch()
+	void update_batch(BatchInfo *info);
+	BatchInfo* get_batch_info()
 	{
-		return this->batch_;
-	}
-	int get_batch_index()
-	{
-		return this->batch_index_;
-	}
-
-	int get_batch_size()
-	{
-		return this->batch_size_;
+		return this->batch_info_;
 	}
 
 	friend DestructibleMap;

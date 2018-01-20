@@ -137,7 +137,7 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
-		if (!current_node->IsHole() && current_node->Contour.size() >= 3)
+		if (!current_node->IsHole()) //  && current_node->Contour.size() >= 3
 		{
 			// convert to Poly2Tri Polygon
 			std::vector<std::vector<p2t::Point*> *> holes_registry;
@@ -273,27 +273,28 @@ void DestructibleMap::update_batches()
 
 	this->quad_tree_.query_dirty(dirty_chunks);
 
-	std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
+	//std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
 
 	for (auto &chunk : dirty_chunks)
 	{
-		if (chunk->batch_)
+		DestructibleMapDrawingBatch *batch = nullptr;
+		if (chunk->get_batch_info())
 		{
-			auto batch = chunk->batch_;
+			batch = chunk->get_batch_info()->batch;
 			batch->dealloc_chunk(chunk);
-			if (batch->is_free(chunk->vertices_.size())) {
-				batch->alloc_chunk(chunk);
-				continue;
+			if (!batch->is_free(chunk->vertices_.size())) {
+				batch = nullptr;
 			}
 		}
 
-		DestructibleMapDrawingBatch *batch = nullptr;
-		for (auto &batch_candidate : this->batches_)
-		{
-			if (batch_candidate->is_free(chunk->vertices_.size()))
+		if (batch == nullptr) {
+			for (auto &batch_candidate : this->batches_)
 			{
-				batch = batch_candidate;
-				break;
+				if (batch_candidate->is_free(chunk->vertices_.size()))
+				{
+					batch = batch_candidate;
+					break;
+				}
 			}
 		}
 
@@ -304,7 +305,13 @@ void DestructibleMap::update_batches()
 			this->batches_.push_back(batch);
 		}
 
-		batch->alloc_chunk(chunk);
+		if (!batch->is_free(chunk->vertices_.size()))
+		{
+			std::cout << "Chunk is too big for batch" << std::endl;
+		}
+		else {
+			batch->alloc_chunk(chunk);
+		}
 	}
 }
 

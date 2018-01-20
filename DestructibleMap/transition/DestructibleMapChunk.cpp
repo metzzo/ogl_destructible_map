@@ -22,9 +22,8 @@ void DestructibleMapChunk::constructor()
 	this->south_east_ = nullptr;
 	this->parent_ = nullptr;
 	this->mesh_dirty_ = false;
-	this->batch_ = nullptr;
-	this->batch_index_ = 0;
-	this->batch_size_ = 0;
+	this->batch_info_ = nullptr;
+
 }
 
 DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end)
@@ -43,6 +42,11 @@ DestructibleMapChunk::DestructibleMapChunk()
 
 DestructibleMapChunk::~DestructibleMapChunk()
 {
+	if (this->batch_info_)
+	{
+		this->batch_info_->chunk = nullptr;
+	}
+
 	if (this->north_west_)
 	{
 		delete this->north_west_;
@@ -216,15 +220,6 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 	this->vertices_.clear();
 	triangulate(poly_tree, this->vertices_);
 
-	// is it too big?
-	if (this->vertices_.size() >= VERTICES_PER_BATCH)
-	{
-		std::cout << "Too many vertices in chunk" << std::endl;
-		// proposed counter measure: split this chunk into more chunks, until the vertex count is under the threshold
-		// another way: the vertices of map chunks may be distributed over multiple VBOs
-		assert(false);
-	}
-
 	this->mesh_dirty_ = true;
 	auto current = this->parent_;
 	while (current)
@@ -237,6 +232,10 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 void DestructibleMapChunk::remove()
 {
 	// TODO: proper removing
+	if (this->batch_info_ != nullptr)
+	{
+		this->batch_info_->batch->dealloc_chunk(this);
+	}
 
 	const auto parent = this->parent_;
 	if (parent &&
@@ -278,9 +277,7 @@ void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty
 	}
 }
 
-void DestructibleMapChunk::update_batch(DestructibleMapDrawingBatch* batch, int index, int size)
+void DestructibleMapChunk::update_batch(BatchInfo* info)
 {
-	this->batch_ = batch;
-	this->batch_index_ = index;
-	this->batch_size_ = size;
+	this->batch_info_ = info;
 }

@@ -2,6 +2,7 @@
 #include "DestructibleMapChunk.h"
 #include <cassert>
 #include <glad/glad.h>
+#include <iostream>
 
 DestructibleMapDrawingBatch::DestructibleMapDrawingBatch()
 {
@@ -21,6 +22,15 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 {
 	glDeleteVertexArrays(1, &this->vao_);
 	glDeleteBuffers(1, &this->vbo_);
+
+	for (auto &info : this->infos_)
+	{
+		if (info->chunk != nullptr)
+		{
+			info->chunk->update_batch(nullptr);
+		}
+		delete info;
+	}
 }
 
 void DestructibleMapDrawingBatch::draw()
@@ -80,9 +90,16 @@ bool DestructibleMapDrawingBatch::is_free(int for_size) const
 void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 {
 	assert(this->is_free(chunk->vertices_.size()));
+	assert(chunk->get_batch_info() == nullptr);
+
 	const auto new_vertices_count = chunk->vertices_.size();
 
-	chunk->update_batch(this, this->allocated_, new_vertices_count);
+	auto info = new BatchInfo();
+	info->batch = this;
+	info->chunk = chunk;
+	info->batch_index = this->infos_.size();
+	info->offset = this->allocated_;
+	info->size = new_vertices_count;
 
 	// update own array
 	for (auto i = 0; i < new_vertices_count; i++)
@@ -95,13 +112,18 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 
 	this->allocated_ += new_vertices_count;
 	this->is_dirty_ = true;
+	this->infos_.push_back(info);
+	chunk->update_batch(info);
 }
 
 void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 {
-	assert(chunk->get_batch() == this);
-	const auto batch_index = chunk->get_batch_index();
-	const auto batch_size = chunk->get_batch_size();
+	auto info = chunk->get_batch_info();
+	const auto batch_index = info->offset;
+	const auto batch_size = info->size;
+
+	assert(batch_index >= 0 && batch_size >= 0);
+	assert(info->batch == this);
 
 	for (auto i = batch_index + batch_size; i < this->allocated_; i++)
 	{
@@ -111,5 +133,15 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 	this->allocated_ -= batch_size;
 	this->is_dirty_ = true;
 
-	chunk->update_batch(nullptr, -1, -1);
+	// reset batch info
+	for (int i = info->batch_index + 1; i < this->infos_.size(); i++)
+	{
+		auto &tmp = this->infos_[i];
+		tmp->batch_index--;
+		tmp->offset -= batch_size;
+	}
+	this->infos_.erase(this->infos_.begin() + info->batch_index);
+	delete info;
+
+	chunk->update_batch(nullptr);
 }
