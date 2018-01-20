@@ -25,10 +25,6 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 
 	for (auto &info : this->infos_)
 	{
-		if (info->chunk != nullptr)
-		{
-			info->chunk->update_batch(nullptr);
-		}
 		delete info;
 	}
 }
@@ -84,15 +80,15 @@ void DestructibleMapDrawingBatch::init()
 
 bool DestructibleMapDrawingBatch::is_free(int for_size) const
 {
-	return (this->allocated_ + for_size) < VERTICES_PER_BATCH;
+	return (this->allocated_ + for_size) <= VERTICES_PER_BATCH;
 }
 
-void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
+void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk, int index)
 {
-	assert(this->is_free(chunk->vertices_.size()));
-	assert(chunk->get_batch_info() == nullptr);
+	assert(chunk->vertices_.size() - index*VERTICES_PER_BATCH > 0);
 
-	const auto new_vertices_count = chunk->vertices_.size();
+	const auto new_vertices_count = std::min(int(chunk->vertices_.size()) - index*VERTICES_PER_BATCH, VERTICES_PER_BATCH);
+	assert(this->is_free(new_vertices_count));
 
 	auto info = new BatchInfo();
 	info->batch = this;
@@ -104,7 +100,7 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	// update own array
 	for (auto i = 0; i < new_vertices_count; i++)
 	{
-		const auto vertex = chunk->vertices_[i];
+		const auto vertex = chunk->vertices_[index*VERTICES_PER_BATCH + i];
 
 		this->vertex_data_[(this->allocated_ + i) * 2] = vertex.x;
 		this->vertex_data_[(this->allocated_ + i) * 2 + 1] = vertex.y;
@@ -113,12 +109,12 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	this->allocated_ += new_vertices_count;
 	this->is_dirty_ = true;
 	this->infos_.push_back(info);
-	chunk->update_batch(info);
+	chunk->add_batch_info(info);
 }
 
-void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
+void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk, int index)
 {
-	auto info = chunk->get_batch_info();
+	auto info = chunk->get_batch_info(index);
 	const auto batch_index = info->offset;
 	const auto batch_size = info->size;
 
@@ -142,6 +138,4 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 	}
 	this->infos_.erase(this->infos_.begin() + info->batch_index);
 	delete info;
-
-	chunk->update_batch(nullptr);
 }
