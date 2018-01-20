@@ -99,7 +99,7 @@ void RenderingEngine::run()
 		const double current_time = glfwGetTime();
 		const double delta = current_time - last_time;
 		if (current_time - last_fps_show > 0.5) {
-			std::cout << "FPS: " << 1 / delta << " Map Draw Calls: " << map_draw_calls << std::endl;
+			std::cout << "FPS: " << 1 / delta << " Draw Calls: " << map_draw_calls << std::endl;
 			last_fps_show = current_time;
 		}
 		last_time = current_time;

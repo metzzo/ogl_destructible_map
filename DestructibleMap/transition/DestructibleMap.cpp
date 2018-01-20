@@ -137,61 +137,58 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
-		if (!current_node->IsHole())
+		if (!current_node->IsHole() && current_node->Contour.size() >= 3)
 		{
-			if (current_node->Contour.size() >= 3)
+			// convert to Poly2Tri Polygon
+			std::vector<std::vector<p2t::Point*> *> holes_registry;
+			const auto polyline = path_to_polyline(current_node);
+
+			p2t::CDT* cdt = new p2t::CDT(*polyline);
+
+			for (auto &child_node : current_node->Childs)
 			{
-				// convert to Poly2Tri Polygon
-				std::vector<std::vector<p2t::Point*> *> holes_registry;
-				const auto polyline = path_to_polyline(current_node);
-
-				p2t::CDT* cdt = new p2t::CDT(*polyline);
-
-				for (auto &child_node : current_node->Childs)
+				if (!child_node->IsHole())
 				{
-					if (!child_node->IsHole())
-					{
-						std::cout << "Expected only Holes." << std::endl;
-						continue;
-					}
-					if (!child_node->Childs.size())
-					{
-						std::cout << "Expected Nodes with Children." << std::endl;
-						continue;
-					}
-
-					if (child_node->Contour.size() >= 3) {
-						const auto hole_polyline = path_to_polyline(child_node);
-						cdt->AddHole(*hole_polyline);
-						holes_registry.push_back(hole_polyline);
-					}
-
+					std::cout << "Expected only Holes." << std::endl;
+					continue;
 				}
-
-				cdt->Triangulate();
-
-				auto triangles = cdt->GetTriangles();
-				for (auto& triangle : triangles) {
-					const auto p0 = triangle->GetPoint(0);
-					const auto p1 = triangle->GetPoint(1);
-					const auto p2 = triangle->GetPoint(2);
-
-					const auto v0 = glm::vec2(float(p0->x), float(p0->y)) * SCALE_FACTOR_INV;
-					const auto v1 = glm::vec2(float(p1->x), float(p1->y)) * SCALE_FACTOR_INV;
-					const auto v2 = glm::vec2(float(p2->x), float(p2->y)) * SCALE_FACTOR_INV;
-
-					vertices.push_back(v0);
-					vertices.push_back(v1);
-					vertices.push_back(v2);
-				}
-
-				remove_polyline(polyline);
-				for (auto &hole : holes_registry)
+				/*if (!child_node->Childs.size())
 				{
-					remove_polyline(hole);
+					std::cout << "Expected Nodes with Children." << std::endl;
+					continue;
+				}*/
+
+				if (child_node->Contour.size() >= 3) {
+					const auto hole_polyline = path_to_polyline(child_node);
+					cdt->AddHole(*hole_polyline);
+					holes_registry.push_back(hole_polyline);
 				}
-				delete cdt;
+
 			}
+
+			cdt->Triangulate();
+
+			auto triangles = cdt->GetTriangles();
+			for (auto& triangle : triangles) {
+				const auto p0 = triangle->GetPoint(0);
+				const auto p1 = triangle->GetPoint(1);
+				const auto p2 = triangle->GetPoint(2);
+
+				const auto v0 = glm::vec2(float(p0->x), float(p0->y)) * SCALE_FACTOR_INV;
+				const auto v1 = glm::vec2(float(p1->x), float(p1->y)) * SCALE_FACTOR_INV;
+				const auto v2 = glm::vec2(float(p2->x), float(p2->y)) * SCALE_FACTOR_INV;
+
+				vertices.push_back(v0);
+				vertices.push_back(v1);
+				vertices.push_back(v2);
+			}
+
+			remove_polyline(polyline);
+			for (auto &hole : holes_registry)
+			{
+				remove_polyline(hole);
+			}
+			delete cdt;
 		}
 
 		current_node = current_node->GetNext();
@@ -276,49 +273,39 @@ void DestructibleMap::update_batches()
 
 	this->quad_tree_.query_dirty(dirty_chunks);
 
-	auto current_free = 0;
+	std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
+
 	for (auto &chunk : dirty_chunks)
 	{
 		if (chunk->batch_)
 		{
-			chunk->batch_->update_vbo(chunk->batch_index_);
+			auto batch = chunk->batch_;
+			batch->dealloc_chunk(chunk);
+			if (batch->is_free(chunk->vertices_.size())) {
+				batch->alloc_chunk(chunk);
+				continue;
+			}
 		}
-		else {
-			DestructibleMapDrawingBatch *batch = nullptr;
-			if (this->free_batches_.size() > current_free)
-			{
-				batch = this->free_batches_[current_free];
-			}
-			else
-			{
-				batch = new DestructibleMapDrawingBatch();
-				batch->init();
-				this->free_batches_.push_back(batch);
-			}
 
-			batch->alloc_chunk(chunk);
-
-			// if batch is full, move to next
-			if (!batch->is_free())
+		DestructibleMapDrawingBatch *batch = nullptr;
+		for (auto &batch_candidate : this->batches_)
+		{
+			if (batch_candidate->is_free(chunk->vertices_.size()))
 			{
-				current_free++;
+				batch = batch_candidate;
+				break;
 			}
 		}
-	}
-	
-	// now filter full batches out
-	auto new_free = std::vector<DestructibleMapDrawingBatch*>();
-	for (auto &batch : this->free_batches_)
-	{
-		if (batch->is_free())
+
+		if (batch == nullptr)
 		{
-			new_free.push_back(batch);
-		} else
-		{
-			full_batches_.push_back(batch);
+			batch = new DestructibleMapDrawingBatch();
+			batch->init();
+			this->batches_.push_back(batch);
 		}
+
+		batch->alloc_chunk(chunk);
 	}
-	this->free_batches_ = new_free;
 }
 
 DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_leaf_ratio)
@@ -336,11 +323,7 @@ DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_lea
 
 DestructibleMap::~DestructibleMap()
 {
-	for (auto &batch : this->full_batches_)
-	{
-		delete batch;
-	}
-	for (auto &batch : this->free_batches_)
+	for (auto &batch : this->batches_)
 	{
 		delete batch;
 	}
@@ -426,12 +409,7 @@ void DestructibleMap::draw()
 
 	this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
 
-	for (auto &batch : full_batches_)
-	{
-		batch->draw();
-	}
-
-	for (auto &batch : free_batches_)
+	for (auto &batch : batches_)
 	{
 		batch->draw();
 	}

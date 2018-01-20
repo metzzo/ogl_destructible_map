@@ -3,10 +3,11 @@
 // TODO: increase these sizes accordingly
 
 // how many vertices are alloed per chunk?
-#define VERTICES_PER_CHUNK (1024)
+#define VERTICES_PER_BATCH (1024)
 
-// how many chunks per batch?
-#define CHUNKS_PER_BATCH (8)
+// if size of changed VBO is greater than threshold * VERTICES_PER_BATCH, just update entire VBO
+#define UPDATE_ALL_THRESHOLD (0.9f)
+
 #include "DestructibleMapShader.h"
 
 class DestructibleMapChunk;
@@ -16,17 +17,18 @@ class DestructibleMapDrawingBatch
 	GLuint vao_;
 	GLuint vbo_;
 
-	DestructibleMapChunk *chunks_[CHUNKS_PER_BATCH];
-	float vertex_data_[CHUNKS_PER_BATCH * VERTICES_PER_CHUNK * 2];
-	int free_slots_;
+	float vertex_data_[VERTICES_PER_BATCH * 2];
+	int allocated_;
+	int last_allocated_;
+	bool is_dirty_;
 public:
 	DestructibleMapDrawingBatch();
 	~DestructibleMapDrawingBatch();
 
-	void update_vbo(int index);
 	void draw();
 	void init();
-	bool is_free() const;
-	int alloc_chunk(DestructibleMapChunk *chunk);
+	bool is_free(int num_vertices) const;
+	void alloc_chunk(DestructibleMapChunk *chunk);
+	void dealloc_chunk(DestructibleMapChunk *chunk);
 };
 

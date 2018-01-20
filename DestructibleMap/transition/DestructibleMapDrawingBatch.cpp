@@ -3,40 +3,14 @@
 #include <cassert>
 #include <glad/glad.h>
 
-
-void DestructibleMapDrawingBatch::update_vbo(int index)
-{
-	assert(index < CHUNKS_PER_BATCH);
-
-	const auto chunk = this->chunks_[index];
-
-	// update own array
-	for (auto i = 0; i < chunk->vertices_.size(); i++)
-	{
-		const auto vertex = chunk->vertices_[i];
-
-		this->vertex_data_[index*VERTICES_PER_CHUNK + i * 2] = vertex.x;
-		this->vertex_data_[index*VERTICES_PER_CHUNK + i * 2 + 1] = vertex.y;
-	}
-
-	// now update vbo
-	const auto start = index * VERTICES_PER_CHUNK * 2 * sizeof(float);
-	const auto size = VERTICES_PER_CHUNK * 2 * sizeof(float);
-
-	glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
-	glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
-}
-
 DestructibleMapDrawingBatch::DestructibleMapDrawingBatch()
 {
 	this->vao_ = 0;
 	this->vbo_ = 0;
-	this->free_slots_ = CHUNKS_PER_BATCH;
-	for (auto i = 0; i < CHUNKS_PER_BATCH; i++)
-	{
-		this->chunks_[i] = nullptr;
-	}
-	for (auto i = 0; i < CHUNKS_PER_BATCH * VERTICES_PER_CHUNK * 2; i++)
+	this->allocated_ = 0;
+	this->last_allocated_ = 0;
+	this->is_dirty_ = false;
+	for (auto i = 0; i < VERTICES_PER_BATCH * 2; i++)
 	{
 		this->vertex_data_[i] = 0.0;
 	}
@@ -51,28 +25,37 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 
 void DestructibleMapDrawingBatch::draw()
 {
-	if (this->is_free())
+	if (this->is_dirty_)
 	{
-		// draw only selected columns
-		glBindVertexArray(this->vao_);
-		auto last = 0, i = 0;
-		for (i = 0; i < CHUNKS_PER_BATCH; i++)
+		// if VBO has changed => get changed data
+		/*auto start = 0, size = 0;
+		if (this->last_allocated_ < this->allocated_)
 		{
-			if (!this->chunks_[i])
-			{
-				map_draw_calls++;
-				glDrawArrays(GL_TRIANGLES, last * VERTICES_PER_CHUNK, i * VERTICES_PER_CHUNK - 1);
-				last = i;
-			}
+			start = this->last_allocated_ * 2 * sizeof(float);
+			size = (this->allocated_ - this->last_allocated_) * 2 * sizeof(float);
+		} else
+		{
+			start = this->allocated_ * 2 * sizeof(float);
+			size = (this->last_allocated_ - this->allocated_) * 2 * sizeof(float);
 		}
-		map_draw_calls++;
-		glDrawArrays(GL_TRIANGLES, last * VERTICES_PER_CHUNK, i * VERTICES_PER_CHUNK - 1);
-	} else
-	{
-		// draw entire vbo
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		if (size >= VERTICES_PER_BATCH * UPDATE_ALL_THRESHOLD * 2 * sizeof(float))
+		{
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
+		} else
+		{
+			glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
+		}*/
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
+		this->is_dirty_ = false;
+		this->last_allocated_ = this->allocated_;
+	}
+
+	if (this->allocated_ > 0) {
 		map_draw_calls++;
 		glBindVertexArray(this->vao_);
-		glDrawArrays(GL_TRIANGLES, 0, CHUNKS_PER_BATCH * VERTICES_PER_CHUNK - 1);
+		glDrawArrays(GL_TRIANGLES, 0, this->allocated_ * 2);
 	}
 }
 
@@ -83,31 +66,50 @@ void DestructibleMapDrawingBatch::init()
 	glBindVertexArray(vao_);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * CHUNKS_PER_BATCH * VERTICES_PER_CHUNK * 2, nullptr, GL_STREAM_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 	glBindVertexArray(0);
 }
 
-bool DestructibleMapDrawingBatch::is_free() const
+bool DestructibleMapDrawingBatch::is_free(int for_size) const
 {
-	return this->free_slots_ > 0;
+	return (this->allocated_ + for_size) < VERTICES_PER_BATCH;
 }
 
-int DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
+void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 {
-	assert(this->is_free());
+	assert(this->is_free(chunk->vertices_.size()));
+	const auto new_vertices_count = chunk->vertices_.size();
 
-	for (int i = 0; i < CHUNKS_PER_BATCH; i++)
+	chunk->update_batch(this, this->allocated_, new_vertices_count);
+
+	// update own array
+	for (auto i = 0; i < new_vertices_count; i++)
 	{
-		if (this->chunks_[i] == nullptr)
-		{
-			this->chunks_[i] = chunk;
-			chunk->update_batch(this, i);
-			this->update_vbo(i);
-			this->free_slots_--;
-			return i;
-		}
+		const auto vertex = chunk->vertices_[i];
+
+		this->vertex_data_[(this->allocated_ + i) * 2] = vertex.x;
+		this->vertex_data_[(this->allocated_ + i) * 2 + 1] = vertex.y;
 	}
-	return -1;
+
+	this->allocated_ += new_vertices_count;
+	this->is_dirty_ = true;
+}
+
+void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
+{
+	assert(chunk->get_batch() == this);
+	const auto batch_index = chunk->get_batch_index();
+	const auto batch_size = chunk->get_batch_size();
+
+	for (auto i = batch_index + batch_size; i < this->allocated_; i++)
+	{
+		this->vertex_data_[(i - batch_size) * 2] = this->vertex_data_[i * 2];
+		this->vertex_data_[(i - batch_size) * 2 + 1] = this->vertex_data_[i * 2 + 1];
+	}
+	this->allocated_ -= batch_size;
+	this->is_dirty_ = true;
+
+	chunk->update_batch(nullptr, -1, -1);
 }

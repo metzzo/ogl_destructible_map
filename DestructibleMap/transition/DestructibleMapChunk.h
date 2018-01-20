@@ -29,6 +29,7 @@ class DestructibleMapChunk
 
 	DestructibleMapDrawingBatch *batch_;
 	int batch_index_;
+	int batch_size_;
 
 	void constructor();
 public:
@@ -53,7 +54,20 @@ public:
 
 	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
 
-	void update_batch(DestructibleMapDrawingBatch *batch, int index);
+	void update_batch(DestructibleMapDrawingBatch *batch, int batch_index, int batch_size);
+	DestructibleMapDrawingBatch* get_batch()
+	{
+		return this->batch_;
+	}
+	int get_batch_index()
+	{
+		return this->batch_index_;
+	}
+
+	int get_batch_size()
+	{
+		return this->batch_size_;
+	}
 
 	friend DestructibleMap;
 	friend DestructibleMapDrawingBatch;

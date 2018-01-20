@@ -27,8 +27,7 @@ class DestructibleMap
 	MeshResource* quadtree_resource_;
 	RenderingEngine* rendering_engine_;
 
-	std::vector<DestructibleMapDrawingBatch*> full_batches_;
-	std::vector<DestructibleMapDrawingBatch*> free_batches_;
+	std::vector<DestructibleMapDrawingBatch*> batches_;
 
 	void load(ClipperLib::Paths poly_tree);
 	void update_batches();
