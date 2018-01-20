@@ -197,19 +197,12 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 
 void generate_aabb(const std::vector<glm::vec2> &vertices, glm::vec2& boundary_begin, glm::vec2& boundary_end)
 {
-	for (auto i = 0; i < vertices.size(); i += 3)
+	for (auto i = 0; i < vertices.size(); i++)
 	{
-		const auto& v0 = vertices[i];
-		const auto& v1 = vertices[i + 1];
-		const auto& v2 = vertices[i + 2];
+		const auto& v = vertices[i];
 
-		include_point_in_begin_boundary(boundary_begin, v0);
-		include_point_in_begin_boundary(boundary_begin, v1);
-		include_point_in_begin_boundary(boundary_begin, v2);
-
-		include_point_in_end_boundary(boundary_end, v0);
-		include_point_in_end_boundary(boundary_end, v1);
-		include_point_in_end_boundary(boundary_end, v2);
+		include_point_in_begin_boundary(boundary_begin, v);
+		include_point_in_end_boundary(boundary_end, v);
 	}
 }
 
@@ -255,63 +248,71 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 	const int count = std::max(this->points_.size() * points_per_leaf_ratio_, 5.0f);
 	for (auto& point : this->points_)
 	{
-		// 0.1% of points are allowed per quad tree
 		this->quad_tree_.insert(point, count);
 	}
 
 	std::cout << "Applying Polygon" << std::endl;
-	this->quad_tree_.apply_polygon(glfwGetTime(), paths);
+	this->quad_tree_.apply_polygon(paths);
 
 	this->point_distribution_resource_ = new MeshResource(this->points_);
-
-	this->update_quadtree_representation();
 }
 
 void DestructibleMap::update_batches()
 {
-	std::vector<DestructibleMapChunk*> dirty_chunks;
-
-	this->quad_tree_.query_dirty(dirty_chunks);
-
-	//std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
-
-	for (auto &chunk : dirty_chunks)
+	auto update_quadtree = false;
+	while (this->quad_tree_.mesh_dirty_)
 	{
-		DestructibleMapDrawingBatch *batch = nullptr;
-		if (chunk->get_batch_info())
-		{
-			batch = chunk->get_batch_info()->batch;
-			batch->dealloc_chunk(chunk);
-			if (!batch->is_free(chunk->vertices_.size())) {
-				batch = nullptr;
-			}
-		}
+		std::vector<DestructibleMapChunk*> dirty_chunks;
 
-		if (batch == nullptr) {
-			for (auto &batch_candidate : this->batches_)
+		this->quad_tree_.query_dirty(dirty_chunks);
+
+		//std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
+
+		for (auto &chunk : dirty_chunks)
+		{
+			DestructibleMapDrawingBatch *batch = nullptr;
+			if (chunk->get_batch_info())
 			{
-				if (batch_candidate->is_free(chunk->vertices_.size()))
-				{
-					batch = batch_candidate;
-					break;
+				batch = chunk->get_batch_info()->batch;
+				batch->dealloc_chunk(chunk);
+				if (!batch->is_free(chunk->vertices_.size())) {
+					std::cout << "Overflow" << std::endl;
+					batch = nullptr;
 				}
 			}
-		}
 
-		if (batch == nullptr)
-		{
-			batch = new DestructibleMapDrawingBatch();
-			batch->init();
-			this->batches_.push_back(batch);
-		}
+			if (chunk->vertices_.size() >= VERTICES_PER_BATCH)
+			{
+				chunk->subdivide();
 
-		if (!batch->is_free(chunk->vertices_.size()))
-		{
-			std::cout << "Chunk is too big for batch" << std::endl;
+				update_quadtree = true;
+			}
+			else {
+				if (batch == nullptr) {
+					for (auto &batch_candidate : this->batches_)
+					{
+						if (batch_candidate->is_free(chunk->vertices_.size()))
+						{
+							batch = batch_candidate;
+							break;
+						}
+					}
+				}
+
+				if (batch == nullptr)
+				{
+					batch = new DestructibleMapDrawingBatch();
+					batch->init();
+					this->batches_.push_back(batch);
+				}
+
+				batch->alloc_chunk(chunk);
+			}
 		}
-		else {
-			batch->alloc_chunk(chunk);
-		}
+	}
+	if (update_quadtree)
+	{
+		this->update_quadtree_representation();
 	}
 }
 
@@ -380,8 +381,9 @@ void DestructibleMap::init(RenderingEngine* rendering_engine)
 {
 	this->rendering_engine_ = rendering_engine;
 
+	this->update_quadtree_representation();
+
 	this->point_distribution_resource_->init();
-	this->quadtree_resource_->init();
 
 	glPointSize(8);
 }
@@ -390,11 +392,7 @@ void DestructibleMap::draw()
 {
 	map_draw_calls = 0;
 
-	// batch update
-	if (this->quad_tree_.mesh_dirty_)
-	{
-		update_batches();
-	}
+	update_batches();
 
 	this->map_shader_->use();
 	this->map_shader_->set_camera_uniforms(this->rendering_engine_->get_view_matrix(), this->rendering_engine_->get_projection_matrix());
@@ -418,7 +416,7 @@ void DestructibleMap::draw()
 
 	for (auto &batch : batches_)
 	{
-		batch->draw();
+		batch->draw(this->map_shader_);
 	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -451,12 +449,13 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 
 		if (result_poly_tree.Total() == 0)
 		{
+			std::cout << "Remove Leave" << std::endl;
 			leave->remove();
 		}
 		else {
 			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
-			leave->set_paths(result_paths, result_poly_tree);
+			leave->apply_polygon(result_paths);
 		}
 	}
 }
@@ -472,4 +471,5 @@ void DestructibleMap::update_quadtree_representation()
 		delete this->quadtree_resource_;
 	}
 	this->quadtree_resource_ = new MeshResource(this->lines_);
+	this->quadtree_resource_->init();
 }

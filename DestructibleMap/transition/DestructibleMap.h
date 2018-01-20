@@ -45,5 +45,10 @@ public:
 	void apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type);
 
 	void update_quadtree_representation();
+
+	DestructibleMapChunk *get_root_chunk()
+	{
+		return &this->quad_tree_;
+	}
 };
 

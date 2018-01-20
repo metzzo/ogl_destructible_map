@@ -7,6 +7,7 @@
 DestructibleMapController::DestructibleMapController(DestructibleMap *map) 
 {
 	this->map_ = map;
+	this->highlighted_chunk_ = nullptr;
 }
 
 DestructibleMapController::~DestructibleMapController()
@@ -42,6 +43,16 @@ void DestructibleMapController::update(double delta)
 			//std::cout << "Picked " << pick_pos.x << " " << pick_pos.y << " " << pick_pos.z << std::endl;
 			const auto circle = make_circle(glm::ivec2(pick_pos.x * SCALE_FACTOR, pick_pos.y * SCALE_FACTOR), 10 * SCALE_FACTOR, 16);
 			map_->apply_polygon_operation(circle, b1 ? ClipperLib::ctDifference : ClipperLib::ctUnion);
+		}
+
+		if (this->highlighted_chunk_)
+		{
+			this->highlighted_chunk_->set_highlighted(false);
+		}
+		this->highlighted_chunk_ = map_->get_root_chunk()->query_chunk(pick_pos);
+		if (this->highlighted_chunk_)
+		{
+			this->highlighted_chunk_->set_highlighted(true);
 		}
 	}
 

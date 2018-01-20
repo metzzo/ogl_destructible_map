@@ -3,12 +3,15 @@
 #include "clipper.hpp"
 #include <glm/glm.hpp>
 #include "DestructibleMapDrawingBatch.h"
+#include "DestructibleMapController.h"
 
 extern int map_draw_calls;
 
 class DestructibleMap;
 class RenderingEngine;
 class DestructibleMapDrawingBatch;
+
+#define VERTICES_PER_CHUNK (256)
 
 class DestructibleMapChunk
 {
@@ -29,6 +32,7 @@ class DestructibleMapChunk
 	bool mesh_dirty_;
 
 	BatchInfo *batch_info_;
+	bool highlighted_;
 
 	void constructor();
 public:
@@ -41,11 +45,13 @@ public:
 
 	bool insert(const glm::vec2& point, const int max_points);
 
-	void apply_polygon(const double time, const ClipperLib::Paths &input_paths);
+	void subdivide();
+
+	void apply_polygon(const ClipperLib::Paths &input_paths);
 
 	void query_range(const glm::vec2 &query_begin, const glm::vec2 &query_end, std::vector<DestructibleMapChunk*> &leaves);
 
-	DestructibleMapChunk *query_random();
+	DestructibleMapChunk *query_chunk(glm::vec2 point);
 
 	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
 
@@ -58,6 +64,18 @@ public:
 	{
 		return this->batch_info_;
 	}
+
+	ClipperLib::Paths& get_paths()
+	{
+		return paths_;
+	}
+
+
+	void set_highlighted(bool highlight)
+	{
+		this->highlighted_ = highlight;
+	}
+
 
 	friend DestructibleMap;
 	friend DestructibleMapDrawingBatch;
