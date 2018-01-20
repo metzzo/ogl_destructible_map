@@ -42,9 +42,6 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="targetver.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="RenderingEngine.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -99,6 +96,9 @@
     <ClInclude Include="DestructibleMap.h">
       <Filter>Headerdateien\DestructibleMap</Filter>
     </ClInclude>
+    <ClInclude Include="DestructibleMapDrawingBatch.h">
+      <Filter>Headerdateien\DestructibleMap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderingEngine.cpp">
@@ -147,6 +147,9 @@
       <Filter>Quelldateien\DestructibleMap</Filter>
     </ClCompile>
     <ClCompile Include="DestructibleMap.cpp">
+      <Filter>Quelldateien\DestructibleMap</Filter>
+    </ClCompile>
+    <ClCompile Include="DestructibleMapDrawingBatch.cpp">
       <Filter>Quelldateien\DestructibleMap</Filter>
     </ClCompile>
   </ItemGroup>

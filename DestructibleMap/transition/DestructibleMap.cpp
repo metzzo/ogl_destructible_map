@@ -11,6 +11,7 @@
 #include <GLFW/glfw3.h>
 #include "DestructibleMapShader.h"
 #include "RenderingEngine.h"
+#include "DestructibleMapDrawingBatch.h"
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -269,8 +270,60 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 	this->update_quadtree_representation();
 }
 
+void DestructibleMap::update_batches()
+{
+	std::vector<DestructibleMapChunk*> dirty_chunks;
+
+	this->quad_tree_.query_dirty(dirty_chunks);
+
+	auto current_free = 0;
+	for (auto &chunk : dirty_chunks)
+	{
+		if (chunk->batch_)
+		{
+			chunk->batch_->update_vbo(chunk->batch_index_);
+		}
+		else {
+			DestructibleMapDrawingBatch *batch = nullptr;
+			if (this->free_batches_.size() > current_free)
+			{
+				batch = this->free_batches_[current_free];
+			}
+			else
+			{
+				batch = new DestructibleMapDrawingBatch();
+				batch->init();
+				this->free_batches_.push_back(batch);
+			}
+
+			batch->alloc_chunk(chunk);
+
+			// if batch is full, move to next
+			if (!batch->is_free())
+			{
+				current_free++;
+			}
+		}
+	}
+	
+	// now filter full batches out
+	auto new_free = std::vector<DestructibleMapDrawingBatch*>();
+	for (auto &batch : this->free_batches_)
+	{
+		if (batch->is_free())
+		{
+			new_free.push_back(batch);
+		} else
+		{
+			full_batches_.push_back(batch);
+		}
+	}
+	this->free_batches_ = new_free;
+}
+
 DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_leaf_ratio)
 {
+	this->rendering_engine_ = nullptr;
 	this->point_distribution_resource_ = nullptr;
 	this->quadtree_resource_ = nullptr;
 	this->triangle_area_ratio_ = triangle_area_ratio;
@@ -283,15 +336,14 @@ DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_lea
 
 DestructibleMap::~DestructibleMap()
 {
-}
-
-void DestructibleMap::load_from_svg(const std::string& path)
-{
-	ClipperLib::Paths paths;
-
-	// TODO
-
-	load(paths);
+	for (auto &batch : this->full_batches_)
+	{
+		delete batch;
+	}
+	for (auto &batch : this->free_batches_)
+	{
+		delete batch;
+	}
 }
 
 void DestructibleMap::load_sample()
@@ -340,14 +392,19 @@ void DestructibleMap::init(RenderingEngine* rendering_engine)
 
 	this->point_distribution_resource_->init();
 	this->quadtree_resource_->init();
-	this->quad_tree_.init(rendering_engine);
 
 	glPointSize(8);
 }
 
-void DestructibleMap::draw() const
+void DestructibleMap::draw()
 {
-	map_chunks_drawn = 0;
+	map_draw_calls = 0;
+
+	// batch update
+	if (this->quad_tree_.mesh_dirty_)
+	{
+		update_batches();
+	}
 
 	this->map_shader_->use();
 	this->map_shader_->set_camera_uniforms(this->rendering_engine_->get_view_matrix(), this->rendering_engine_->get_projection_matrix());
@@ -368,7 +425,16 @@ void DestructibleMap::draw() const
 	}
 
 	this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
-	this->quad_tree_.draw();
+
+	for (auto &batch : full_batches_)
+	{
+		batch->draw();
+	}
+
+	for (auto &batch : free_batches_)
+	{
+		batch->draw();
+	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 

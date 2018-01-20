@@ -2,12 +2,12 @@
 
 #include "clipper.hpp"
 #include <glm/glm.hpp>
-#include <glad/glad.h>
 
-extern int map_chunks_drawn;
+extern int map_draw_calls;
 
 class DestructibleMap;
 class RenderingEngine;
+class DestructibleMapDrawingBatch;
 
 class DestructibleMapChunk
 {
@@ -24,12 +24,11 @@ class DestructibleMapChunk
 
 	ClipperLib::Paths paths_;
 	std::vector<glm::vec2> vertices_;
-	double last_modify_;
-	bool is_cached_;
-	bool initialized_;
-	GLuint vao_;
-	GLuint vbo_positions_;
-	float *raw_vertices_;
+
+	bool mesh_dirty_;
+
+	DestructibleMapDrawingBatch *batch_;
+	int batch_index_;
 
 	void constructor();
 public:
@@ -37,7 +36,6 @@ public:
 	explicit DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end);
 	DestructibleMapChunk();
 	~DestructibleMapChunk();
-	void init(RenderingEngine* engine);
 
 	void get_lines(std::vector<glm::vec2>& lines) const;
 
@@ -51,11 +49,12 @@ public:
 
 	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
 
-	void simplify();
-
-	void draw() const;
-
 	void remove();
 
+	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
+
+	void update_batch(DestructibleMapDrawingBatch *batch, int index);
+
 	friend DestructibleMap;
+	friend DestructibleMapDrawingBatch;
 };

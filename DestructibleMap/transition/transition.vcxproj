@@ -157,6 +157,7 @@
     <ClInclude Include="clipper.hpp" />
     <ClInclude Include="DestructibleMapController.h" />
     <ClInclude Include="DestructibleMap.h" />
+    <ClInclude Include="DestructibleMapDrawingBatch.h" />
     <ClInclude Include="GLDebugContext.h" />
     <ClInclude Include="IResource.h" />
     <ClInclude Include="DestructibleMapShader.h" />
@@ -171,13 +172,13 @@
     <ClInclude Include="DestructibleMapChunk.h" />
     <ClInclude Include="RenderingEngine.h" />
     <ClInclude Include="ShaderResource.h" />
-    <ClInclude Include="targetver.h" />
     <ClInclude Include="TextureResource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="clipper.cpp" />
     <ClCompile Include="DestructibleMapController.cpp" />
     <ClCompile Include="DestructibleMap.cpp" />
+    <ClCompile Include="DestructibleMapDrawingBatch.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="DestructibleMapShader.cpp" />
     <ClCompile Include="MeshResource.cpp" />

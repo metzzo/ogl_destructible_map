@@ -7,8 +7,10 @@
 #include "ShaderResource.h"
 #include <random>
 #include "DestructibleMap.h"
+#include "DestructibleMapDrawingBatch.h"
 
-int map_chunks_drawn;
+int map_draw_calls;
+
 
 void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices);
 
@@ -19,12 +21,9 @@ void DestructibleMapChunk::constructor()
 	this->south_west_ = nullptr;
 	this->south_east_ = nullptr;
 	this->parent_ = nullptr;
-	this->last_modify_ = 0.0;
-	this->is_cached_ = false;
-	this->initialized_ = false;
-	this->raw_vertices_ = nullptr;
-	this->vao_ = 0;
-	this->vbo_positions_ = 0;
+	this->mesh_dirty_ = false;
+	this->batch_ = nullptr;
+	this->batch_index_ = 0;
 }
 
 DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const glm::vec2 begin, const glm::vec2 end)
@@ -50,40 +49,7 @@ DestructibleMapChunk::~DestructibleMapChunk()
 		delete this->south_west_;
 		delete this->south_east_;
 	}
-	if (this->vao_)
-	{
-		glDeleteVertexArrays(1, &this->vao_);
-		glDeleteBuffers(1, &this->vbo_positions_);
-		delete this->raw_vertices_;
-	}
 }
-
-void DestructibleMapChunk::init(RenderingEngine* engine)
-{
-	if (this->vertices_.size() > 0)
-	{
-		glGenVertexArrays(1, &this->vao_);
-		glGenBuffers(1, &this->vbo_positions_);
-		glBindVertexArray(vao_);
-
-		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_positions_);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float)*this->vertices_.size() * 2, this->raw_vertices_, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
-		glBindVertexArray(0);
-	}
-
-	if (this->north_west_)
-	{
-		this->north_west_->init(engine);
-		this->north_east_->init(engine);
-		this->south_west_->init(engine);
-		this->south_east_->init(engine);
-	}
-
-	this->initialized_ = true;
-}
-
 
 void DestructibleMapChunk::get_lines(std::vector<glm::vec2>& lines) const
 {
@@ -185,9 +151,6 @@ void DestructibleMapChunk::apply_polygon(const double time, const ClipperLib::Pa
 		return;
 	}
 
-
-	this->last_modify_ = time;
-
 	ClipperLib::Paths result_paths;
 	ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
@@ -229,7 +192,7 @@ void DestructibleMapChunk::query_range(const glm::vec2& query_begin, const glm::
 
 DestructibleMapChunk *DestructibleMapChunk::query_random()
 {
-	if (this->north_west_ && !this->is_cached_)
+	if (this->north_west_)
 	{
 		DestructibleMapChunk *chunks[] = {
 			this->north_west_,
@@ -252,43 +215,21 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 	this->vertices_.clear();
 	triangulate(poly_tree, this->vertices_);
 
-	if (this->raw_vertices_ != nullptr) {
-		delete this->raw_vertices_;
-	}
-	this->raw_vertices_ = new float[this->vertices_.size() * 2];
-	for (auto i = 0; i < this->vertices_.size(); i++)
+	// is it too big?
+	if (this->vertices_.size() >= VERTICES_PER_CHUNK)
 	{
-		const auto &v = this->vertices_[i];
-		this->raw_vertices_[i*2] = v.x;
-		this->raw_vertices_[i*2 + 1] = v.y;
-
+		std::cout << "Too many vertices in chunk" << std::endl;
+		// proposed counter measure: split this chunk into more chunks, until the vertex count is under the threshold
+		// another way: the vertices of map chunks may be distributed over multiple VBOs
+		assert(false);
 	}
 
-	if (this->initialized_) 
+	this->mesh_dirty_ = true;
+	auto current = this->parent_;
+	while (current)
 	{
-		// TODO: update mesh
-	}
-}
-
-void DestructibleMapChunk::simplify()
-{
-	// TODO
-}
-
-void DestructibleMapChunk::draw() const
-{
-	if (this->north_west_ && !this->is_cached_)
-	{
-		this->north_west_->draw();
-		this->north_east_->draw();
-		this->south_west_->draw();
-		this->south_east_->draw();
-	}
-	else if (this->vao_ != 0)
-	{
-		map_chunks_drawn++;
-		glBindVertexArray(this->vao_);
-		glDrawArrays(GL_TRIANGLES, 0, this->vertices_.size());
+		current->mesh_dirty_ = true;
+		current = current->parent_;
 	}
 }
 
@@ -298,10 +239,10 @@ void DestructibleMapChunk::remove()
 
 	const auto parent = this->parent_;
 	if (parent &&
-		parent->north_west_->vao_ == 0 &&
-		parent->north_east_->vao_ == 0 &&
-		parent->south_west_->vao_ == 0 &&
-		parent->south_east_->vao_ == 0)
+		parent->north_west_->vertices_.size() == 0 &&
+		parent->north_east_->vertices_.size() == 0 &&
+		parent->south_west_->vertices_.size() == 0 &&
+		parent->south_east_->vertices_.size() == 0)
 	{
 		delete parent->north_west_;
 		delete parent->north_east_;
@@ -313,4 +254,31 @@ void DestructibleMapChunk::remove()
 		parent->south_west_ = nullptr;
 		parent->south_east_ = nullptr;
 	}
+}
+
+void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks)
+{
+	if (!this->mesh_dirty_)
+	{
+		return;
+	}
+	this->mesh_dirty_ = false;
+
+	if (this->north_west_)
+	{
+		this->north_west_->query_dirty(dirty_chunks);
+		this->north_east_->query_dirty(dirty_chunks);
+		this->south_west_->query_dirty(dirty_chunks);
+		this->south_east_->query_dirty(dirty_chunks);
+	}
+	else 
+	{
+		dirty_chunks.push_back(this);
+	}
+}
+
+void DestructibleMapChunk::update_batch(DestructibleMapDrawingBatch* batch, int index)
+{
+	this->batch_ = batch;
+	this->batch_index_ = index;
 }

@@ -27,18 +27,21 @@ class DestructibleMap
 	MeshResource* quadtree_resource_;
 	RenderingEngine* rendering_engine_;
 
+	std::vector<DestructibleMapDrawingBatch*> full_batches_;
+	std::vector<DestructibleMapDrawingBatch*> free_batches_;
+
 	void load(ClipperLib::Paths poly_tree);
+	void update_batches();
 public:
 
 	explicit DestructibleMap(float triangle_area_ratio = 0.025f, float points_per_leaf_ratio = 0.0005f);
 	~DestructibleMap();
 
-	void load_from_svg(const std::string& path);
 	void load_sample();
 
 	void init(RenderingEngine* rendering_engine);
 
-	void draw() const;
+	void draw();
 
 	void apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type);
 
