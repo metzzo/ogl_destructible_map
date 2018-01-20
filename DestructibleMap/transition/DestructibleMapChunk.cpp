@@ -22,6 +22,7 @@ void DestructibleMapChunk::constructor()
 	this->south_east_ = nullptr;
 	this->parent_ = nullptr;
 	this->mesh_dirty_ = false;
+	this->batch_info_ = nullptr;
 
 }
 
@@ -41,6 +42,11 @@ DestructibleMapChunk::DestructibleMapChunk()
 
 DestructibleMapChunk::~DestructibleMapChunk()
 {
+	if (this->batch_info_)
+	{
+		this->batch_info_->chunk = nullptr;
+	}
+
 	if (this->north_west_)
 	{
 		delete this->north_west_;
@@ -226,10 +232,9 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 void DestructibleMapChunk::remove()
 {
 	// TODO: proper removing
-	for (int i = 0; i < this->batch_infos_.size(); i++)
+	if (this->batch_info_ != nullptr)
 	{
-		this->batch_infos_[i]->batch->dealloc_chunk(this, i);
-		
+		this->batch_info_->batch->dealloc_chunk(this);
 	}
 
 	const auto parent = this->parent_;
@@ -272,12 +277,7 @@ void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty
 	}
 }
 
-void DestructibleMapChunk::add_batch_info(BatchInfo* info)
+void DestructibleMapChunk::update_batch(BatchInfo* info)
 {
-	this->batch_infos_.push_back(info);
-}
-
-void DestructibleMapChunk::clear_batch_infos()
-{
-	this->batch_infos_.clear();
+	this->batch_info_ = info;
 }

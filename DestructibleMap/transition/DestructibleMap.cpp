@@ -277,21 +277,16 @@ void DestructibleMap::update_batches()
 
 	for (auto &chunk : dirty_chunks)
 	{
-		if (chunk->get_batch_info_count() > 0)
+		DestructibleMapDrawingBatch *batch = nullptr;
+		if (chunk->get_batch_info())
 		{
-			for (auto i = 0; i < chunk->get_batch_info_count(); i++)
-			{
-				auto batch = chunk->get_batch_info(i)->batch;
-				batch->dealloc_chunk(chunk, i);
-
-				if (!batch->is_free(chunk->vertices_.size())) {
-					batch = nullptr;
-				}
+			batch = chunk->get_batch_info()->batch;
+			batch->dealloc_chunk(chunk);
+			if (!batch->is_free(chunk->vertices_.size())) {
+				batch = nullptr;
 			}
-			chunk->clear_batch_infos();
 		}
 
-		DestructibleMapDrawingBatch *batch = nullptr;
 		if (batch == nullptr) {
 			for (auto &batch_candidate : this->batches_)
 			{
@@ -313,21 +308,9 @@ void DestructibleMap::update_batches()
 		if (!batch->is_free(chunk->vertices_.size()))
 		{
 			std::cout << "Chunk is too big for batch" << std::endl;
-			// distribute among multiple batches
-			auto index = 0;
-			for (auto i = 0; i < chunk->vertices_.size(); i += VERTICES_PER_BATCH)
-			{
-				batch = new DestructibleMapDrawingBatch();
-				batch->init();
-				this->batches_.push_back(batch);
-
-				batch->alloc_chunk(chunk, index);
-				
-				index++;
-			}
 		}
 		else {
-			batch->alloc_chunk(chunk, 0);
+			batch->alloc_chunk(chunk);
 		}
 	}
 }

@@ -28,7 +28,7 @@ class DestructibleMapChunk
 
 	bool mesh_dirty_;
 
-	std::vector<BatchInfo *> batch_infos_;
+	BatchInfo *batch_info_;
 
 	void constructor();
 public:
@@ -53,15 +53,10 @@ public:
 
 	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
 
-	void add_batch_info(BatchInfo *info);
-	void clear_batch_infos();
-	BatchInfo* get_batch_info(int index)
+	void update_batch(BatchInfo *info);
+	BatchInfo* get_batch_info()
 	{
-		return this->batch_infos_[index];
-	}
-	int get_batch_info_count()
-	{
-		return this->batch_infos_.size();
+		return this->batch_info_;
 	}
 
 	friend DestructibleMap;

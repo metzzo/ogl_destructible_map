@@ -40,7 +40,7 @@ public:
 	void draw();
 	void init();
 	bool is_free(int num_vertices) const;
-	void alloc_chunk(DestructibleMapChunk *chunk, int index);
-	void dealloc_chunk(DestructibleMapChunk *chunk, int index);
+	void alloc_chunk(DestructibleMapChunk *chunk);
+	void dealloc_chunk(DestructibleMapChunk *chunk);
 };
 
