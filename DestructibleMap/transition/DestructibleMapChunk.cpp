@@ -182,7 +182,6 @@ void DestructibleMapChunk::subdivide()
 
 void DestructibleMapChunk::merge()
 {
-	std::cout << "Merge" << std::endl;
 	assert(this->north_west_);
 
 	if (this->north_west_->paths_.size() + this->north_east_->paths_.size() + this->south_west_->paths_.size() + this->south_east_->paths_.size() > 0) {

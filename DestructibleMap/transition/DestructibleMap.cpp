@@ -507,41 +507,48 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 	{
 		auto &leave = affected_leaves[i];
 
+		ClipperLib::PolyTree result_poly_tree;
 		ClipperLib::Paths path_inside_bounds;
 		ClipperLib::Clipper c;
 		c.StrictlySimple(true);
 		c.AddPath(polygon, ClipperLib::ptSubject, true);
 		c.AddPath(leave->quad_, ClipperLib::ptClip, true);
 
-		if (!c.Execute(ClipperLib::ctIntersection, path_inside_bounds, ClipperLib::pftNonZero))
+		if (clip_type == ClipperLib::ctIntersection)
 		{
-			std::cout << "Could not create Polygon Tree" << std::endl;
+			c.AddPaths(leave->paths_, ClipperLib::ptClip, true);
+
+			ClipperLib::Paths result_paths;
+
+			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+
+			leave->set_paths(result_paths, result_poly_tree);
 		}
+		else {
+			if (!c.Execute(ClipperLib::ctIntersection, path_inside_bounds, ClipperLib::pftNonZero))
+			{
+				std::cout << "Could not create Polygon Tree" << std::endl;
+			}
 
-		if (path_inside_bounds.size() == 0)
-		{
-			continue;
+			if (path_inside_bounds.size() == 0)
+			{
+				continue;
+			}
+
+			c.Clear();
+			c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
+			c.AddPaths(path_inside_bounds, ClipperLib::ptClip, true);
+			if (!c.Execute(clip_type, result_poly_tree, ClipperLib::pftNonZero))
+			{
+				std::cout << "Could not create Polygon Tree" << std::endl;
+			}
+
+			ClipperLib::Paths result_paths;
+
+			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+
+			leave->set_paths(result_paths, result_poly_tree);
 		}
-
-		ClipperLib::PolyTree result_poly_tree;
-		c.Clear();
-		c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
-		c.AddPaths(path_inside_bounds, ClipperLib::ptClip, true);
-		if (!c.Execute(clip_type, result_poly_tree, ClipperLib::pftNonZero))
-		{
-			std::cout << "Could not create Polygon Tree" << std::endl;
-		}
-
-		ClipperLib::Paths result_paths;
-
-		if (result_poly_tree.Total() == 0)
-		{
-			//std::cout << "Remove Leave Candidate " << std::endl;
-			//leave->remove();
-		}
-		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
-
-		leave->set_paths(result_paths, result_poly_tree);
 	}
 
 	//std::cout << "Time: " << (glfwGetTime() - time) * 1000 << std::endl;
