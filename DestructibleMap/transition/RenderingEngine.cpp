@@ -85,7 +85,7 @@ void RenderingEngine::run()
 	glCullFace(GL_BACK);
 
 	auto map = new DestructibleMap(0.001f, 0.01f);
-	map->load_sample();
+	map->generate_map();
 	map->init(this);
 
 	auto controller = new DestructibleMapController(map);

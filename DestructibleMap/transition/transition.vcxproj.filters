@@ -102,6 +102,9 @@
     <ClInclude Include="DestructibleMapUtility.h">
       <Filter>Headerdateien\DestructibleMap</Filter>
     </ClInclude>
+    <ClInclude Include="DestructibleMapConfiguration.h">
+      <Filter>Headerdateien\DestructibleMap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderingEngine.cpp">

@@ -180,17 +180,9 @@ void DestructibleMap::update_batches()
 	//std::cout << "Time " << (glfwGetTime() - time) * 1000 << std::endl;
 }
 
-void DestructibleMap::load_sample()
+void DestructibleMap::generate_map(int num_rects, int num_circle, int width, int height, int min_size, int max_size)
 {
 	std::cout << "Generate Map" << std::endl;
-
-	const int num_rects = 1000;
-	const int num_circle = 1000;
-	const int width = 10000;
-	const int height = 10000;
-
-	const int rect_min_size = 10;
-	const int rect_max_size = 300;
 
 	ClipperLib::Paths paths;
 
@@ -198,8 +190,8 @@ void DestructibleMap::load_sample()
 	{
 		auto pos_x = rand() % width;
 		auto pos_y = rand() % height;
-		auto w = rect_min_size + rand() % (rect_max_size - rect_min_size);
-		auto h = rect_min_size + rand() % (rect_max_size - rect_min_size);
+		auto w = min_size + rand() % (max_size - min_size);
+		auto h = min_size + rand() % (max_size - min_size);
 		paths.push_back(make_rect(
 			glm::ivec2(pos_x*SCALE_FACTOR, pos_y*SCALE_FACTOR),
 			glm::ivec2(w*SCALE_FACTOR, h*SCALE_FACTOR)
@@ -210,7 +202,7 @@ void DestructibleMap::load_sample()
 	{
 		auto pos_x = rand() % width;
 		auto pos_y = rand() % height;
-		auto radius = rect_min_size + rand() % (rect_max_size - rect_min_size);
+		auto radius = min_size + rand() % (max_size - min_size);
 		paths.push_back(make_circle(
 			glm::ivec2(pos_x*SCALE_FACTOR, pos_y*SCALE_FACTOR),
 			radius*SCALE_FACTOR,

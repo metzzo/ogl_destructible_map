@@ -132,6 +132,17 @@ void generate_point_cloud(float triangle_area_ratio, const std::vector<glm::vec2
 	std::random_shuffle(points.begin(), points.end());
 }
 
+void ensure_points_not_overlapping(ClipperLib::Path &path)
+{
+	auto prev = path.size() - 1;
+	for (auto i = 0; i < path.size(); i++)
+	{
+		path[i].X - path[prev].X > 0 ? path[i].X-- : path[i].X++;
+		path[i].Y - path[prev].Y > 0 ? path[i].Y-- : path[i].Y++;
+		prev = i;
+	}
+}
+
 void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices)
 {
 	if (poly_tree.Total() == 0)
@@ -191,6 +202,7 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 
 				if (child_node->Contour.size() >= 3) {
 					hole_polyline.clear();
+					ensure_points_not_overlapping(child_node->Contour);
 					path_to_polyline(hole_polyline, child_node, points, num_points);
 					cdt->AddHole(hole_polyline);
 				}
@@ -259,6 +271,7 @@ void triangulate_fast(const ClipperLib::PolyTree &poly_tree, std::vector<glm::ve
 
 				if (child_node->Contour.size() >= 3) {
 					hole_polyline.clear();
+					ensure_points_not_overlapping(child_node->Contour);
 					path_to_polyline(hole_polyline, child_node, points, num_points);
 					assert(num_points < TRIANGULATION_BUFFER);
 					cdt->AddHole(hole_polyline);

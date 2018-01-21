@@ -157,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clipper.hpp" />
+    <ClInclude Include="DestructibleMapConfiguration.h" />
     <ClInclude Include="DestructibleMapController.h" />
     <ClInclude Include="DestructibleMap.h" />
     <ClInclude Include="DestructibleMapDrawingBatch.h" />

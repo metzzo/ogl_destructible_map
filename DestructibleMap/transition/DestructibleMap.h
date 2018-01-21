@@ -1,10 +1,7 @@
 #pragma once
 #include "clipper.hpp"
 #include "DestructibleMapChunk.h"
-
-#define SCALE_FACTOR (1000.0f)
-#define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
-#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+#include "DestructibleMapConfiguration.h"
 
 
 class DestructibleMapShader;
@@ -35,10 +32,10 @@ class DestructibleMap
 	void update_batches();
 public:
 
-	explicit DestructibleMap(float triangle_area_ratio = 0.025f, float points_per_leaf_ratio = 0.0005f);
+	explicit DestructibleMap(float triangle_area_ratio = MAP_TRIANGLE_AREA_RATIO, float points_per_leaf_ratio = MAP_POINTS_PER_LEAF_RATIO);
 	~DestructibleMap();
 
-	void load_sample();
+	void generate_map(int num_rects = GENERATE_NUM_RECTS, int num_circle = GENERATE_NUM_CIRCLES, int width = GENERATE_WIDTH, int height = GENERATE_HEIGHT, int min_size = GENERATE_MIN_SIZE, int max_size = GENERATE_MAX_SIZE);
 
 	void init(RenderingEngine* rendering_engine);
 

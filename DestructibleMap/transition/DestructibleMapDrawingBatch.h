@@ -1,18 +1,9 @@
 #pragma once
 
-// TODO: increase these sizes accordingly
-
-// how many vertices are allowed per batch?
-#define VERTICES_PER_BATCH (4096)
-
-// how many batches are available on start
-#define NUM_START_BATCHES (64)
-
-// how many vertices per chunk should be allowed
-#define VERTICES_PER_CHUNK (64)
 
 #include "DestructibleMapShader.h"
 #include <vector>
+#include "DestructibleMapConfiguration.h"
 
 class DestructibleMapChunk;
 class DestructibleMapDrawingBatch;
