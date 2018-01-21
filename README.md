@@ -71,7 +71,20 @@ The project is developed using Visual Studio 2015 using C++11 features. Simply o
 
 To adjust some aspects of the map, edit the defines in DestructibleMapConfiguration.h
 
-Following libraries are being actively used:
+### Controls
+* *WASD*: Move camera around
+* *Q*: Zoom in
+* *E*: Zoom out
+* *Shift*: Fast movement
+* *1*: Wireframe
+* *2*: Update quadtree lines
+* *3*: Show point cloud
+* Drawing on the map is done by pressing the right mouse button and moving the mouse accordingly.
+* Erasing part of the map is done by pressing the left mouse button and moving the mouse accordingly.
+
+The drawing batch that is under the current mouse position is colored yellow, all other drawing batches are green.
+
+### Libraries
  * [ClipperLib](http://www.angusj.com/delphi/clipper.php) (Clipping library)
  * [Poly2Tri](https://github.com/jhasse/poly2tri/commits/master) (Triangulation library)
  * [OpenMP](http://www.openmp.org/) (Parallelization library)
@@ -80,7 +93,254 @@ Following libraries are being actively used:
  * [GLFW](http://www.glfw.org/) (OpenGL library)
 
 ## Benchmarks
-TODO
+My system is running on a vanilla Ryzen 7 1700, Nvidia GTX 1080, 32GB DDR4 RAM and Windows 10. The engine was compiled using Release mode using Visual Studio 2015. The rendering resolution was 1600x900 in windowed mode with Vsync off. Each benchmark was done 3 times manually.
+
+Keep in mind, the "Average FPS when map is changed every frame at the beginning" measurement is done considering the initial drawing batches. This value will get lower, once more drawing batches are displayed.
+
+### Recommended Configuration
+This configuration was evaluated using trial'n error - there may still be more performant configurations.
+
+<details> 
+<summary>Defines</summary>
+
+```
+// how many vertices are allowed per batch?
+#define VERTICES_PER_BATCH (4096)
+
+// how many batches are available on start
+#define NUM_START_BATCHES (64)
+
+// how many vertices per chunk should be allowed
+#define VERTICES_PER_CHUNK (64)
+
+// factor from real coordinates to Clipper coordinates
+#define SCALE_FACTOR (1000.0f)
+
+// factor from Clipper coordinates to real coordinates
+#define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+
+// how big is the triangulation buffer (used when fast triangulation is performed, this is the maximum number of points allowed)
+#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+
+// how many rects should be generated
+#define GENERATE_NUM_RECTS (500)
+
+// how many circles should be generated
+#define GENERATE_NUM_CIRCLES (500)
+
+// width of the map (in real coordinates)
+#define GENERATE_WIDTH (5000)
+
+// height of the map (in real coordinates)
+#define GENERATE_HEIGHT (5000)
+
+// minimum size of shapes (in real coordinates)
+#define GENERATE_MIN_SIZE (10)
+
+// maximum size of shapes (in real coordinates)
+#define GENERATE_MAX_SIZE (300)
+
+// area*MAP_TRIANGLE_AREA_RATIO many points are being used for monte carlo point cloud approximation for the quadtree
+#define MAP_TRIANGLE_AREA_RATIO (0.025f)
+
+// x=total_points*MAP_POINTS_PER_LEAF_RATIO is the maximum number of points which should be stored in each leaf in the quad tree (if number is greater than x a new leaf is generated).
+#define MAP_POINTS_PER_LEAF_RATIO (0.0005f)
+
+// is subdividing/merging enabled?
+#define ENABLE_MERGING_SUBDIVIDING
+```
+</details>
+
+* Map construction (time until first frame is displayed): 5-6 seconds
+* Initial average FPS when map has not been changed: 1900 - 2000 FPS
+* Average FPS when map is changed every frame at the beginning: 120 - 150 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 500 - 600 FPS
+
+### Disable quadtree (just 1 chunk total)
+This configuration disables the quadtree as a whole and has the entire map polygon in just one chunk all time. The archtecture requires that a chunk must always fit in a batch, so the batch size is also increased accordingly. Some triangulation optimizations are also not possible in this configuration. As expected this maximizes render time (since just 1 drawing batch has to be issued), but has horrible map modification performance
+
+<details> 
+<summary>Defines</summary>
+
+```
+#pragma once
+
+// how many vertices are allowed per batch?
+#define VERTICES_PER_BATCH (4096*4)
+
+// how many batches are available on start
+#define NUM_START_BATCHES (64)
+
+// how many vertices per chunk should be allowed
+#define VERTICES_PER_CHUNK (4096*4)
+
+// factor from real coordinates to Clipper coordinates
+#define SCALE_FACTOR (1000.0f)
+
+// factor from Clipper coordinates to real coordinates
+#define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+
+// how big is the triangulation buffer (used when fast triangulation is performed, this is the maximum number of points allowed)
+#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+
+// how many rects should be generated
+#define GENERATE_NUM_RECTS (500)
+
+// how many circles should be generated
+#define GENERATE_NUM_CIRCLES (500)
+
+// width of the map (in real coordinates)
+#define GENERATE_WIDTH (5000)
+
+// height of the map (in real coordinates)
+#define GENERATE_HEIGHT (5000)
+
+// minimum size of shapes (in real coordinates)
+#define GENERATE_MIN_SIZE (10)
+
+// maximum size of shapes (in real coordinates)
+#define GENERATE_MAX_SIZE (300)
+
+// area*MAP_TRIANGLE_AREA_RATIO many points are being used for monte carlo point cloud approximation for the quadtree
+#define MAP_TRIANGLE_AREA_RATIO (0.025f)
+
+// x=total_points*MAP_POINTS_PER_LEAF_RATIO is the maximum number of points which should be stored in each leaf in the quad tree (if number is greater than x a new leaf is generated).
+#define MAP_POINTS_PER_LEAF_RATIO (1.0f)
+
+// is subdividing/merging enabled?
+//#define ENABLE_MERGING_SUBDIVIDING
+
+
+```
+</details>
+
+* Map construction (time until first frame is displayed): 3 seconds
+* Initial average FPS when map has not been changed: 2500 - 2700 FPS
+* Average FPS when map is changed every frame at the beginning: 2-3 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2500 - 2700 FPS
+
+### Low vertices per batch
+
+This configuration has a significantly low vertex per batch threshold, which causes the overall rendering time to be quite low in comparison, since lots of drawing batches have to be issued, while not changing the map modification performance. This causes a quad tree with high depth.
+
+<details> 
+<summary>Defines</summary>
+
+```
+// how many vertices are allowed per batch?
+#define VERTICES_PER_BATCH (4096)
+
+// how many batches are available on start
+#define NUM_START_BATCHES (64)
+
+// how many vertices per chunk should be allowed
+#define VERTICES_PER_CHUNK (64)
+
+// factor from real coordinates to Clipper coordinates
+#define SCALE_FACTOR (1000.0f)
+
+// factor from Clipper coordinates to real coordinates
+#define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+
+// how big is the triangulation buffer (used when fast triangulation is performed, this is the maximum number of points allowed)
+#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+
+// how many rects should be generated
+#define GENERATE_NUM_RECTS (500)
+
+// how many circles should be generated
+#define GENERATE_NUM_CIRCLES (500)
+
+// width of the map (in real coordinates)
+#define GENERATE_WIDTH (5000)
+
+// height of the map (in real coordinates)
+#define GENERATE_HEIGHT (5000)
+
+// minimum size of shapes (in real coordinates)
+#define GENERATE_MIN_SIZE (10)
+
+// maximum size of shapes (in real coordinates)
+#define GENERATE_MAX_SIZE (300)
+
+// area*MAP_TRIANGLE_AREA_RATIO many points are being used for monte carlo point cloud approximation for the quadtree
+#define MAP_TRIANGLE_AREA_RATIO (0.025f)
+
+// x=total_points*MAP_POINTS_PER_LEAF_RATIO is the maximum number of points which should be stored in each leaf in the quad tree (if number is greater than x a new leaf is generated).
+#define MAP_POINTS_PER_LEAF_RATIO (0.0005f)
+
+// is subdividing/merging enabled?
+#define ENABLE_MERGING_SUBDIVIDING
+```
+</details>
+
+* Map construction (time until first frame is displayed): 5-6 seconds
+* Initial average FPS when map has not been changed: 1300 - 1400 FPS
+* Average FPS when map is changed every frame at the beginning: 120 - 140 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 270 - 290 FPS
+
+### High vertices per chunk
+This configuration causes very big polygons in the chunks, which result in poor map modification performance (but not as poor as the 1 chunk for the entire map case). This causes a quadtree with low depth.
+
+<details> 
+<summary>Defines</summary>
+
+```
+// how many vertices are allowed per batch?
+#define VERTICES_PER_BATCH (4096)
+
+// how many batches are available on start
+#define NUM_START_BATCHES (64)
+
+// how many vertices per chunk should be allowed
+#define VERTICES_PER_CHUNK (2048)
+
+// factor from real coordinates to Clipper coordinates
+#define SCALE_FACTOR (1000.0f)
+
+// factor from Clipper coordinates to real coordinates
+#define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+
+// how big is the triangulation buffer (used when fast triangulation is performed, this is the maximum number of points allowed)
+#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+
+// how many rects should be generated
+#define GENERATE_NUM_RECTS (500)
+
+// how many circles should be generated
+#define GENERATE_NUM_CIRCLES (500)
+
+// width of the map (in real coordinates)
+#define GENERATE_WIDTH (5000)
+
+// height of the map (in real coordinates)
+#define GENERATE_HEIGHT (5000)
+
+// minimum size of shapes (in real coordinates)
+#define GENERATE_MIN_SIZE (10)
+
+// maximum size of shapes (in real coordinates)
+#define GENERATE_MAX_SIZE (300)
+
+// area*MAP_TRIANGLE_AREA_RATIO many points are being used for monte carlo point cloud approximation for the quadtree
+#define MAP_TRIANGLE_AREA_RATIO (0.025f)
+
+// x=total_points*MAP_POINTS_PER_LEAF_RATIO is the maximum number of points which should be stored in each leaf in the quad tree (if number is greater than x a new leaf is generated).
+#define MAP_POINTS_PER_LEAF_RATIO (0.0005f)
+
+// is subdividing/merging enabled?
+#define ENABLE_MERGING_SUBDIVIDING
+```
+</details>
+
+* Map construction (time until first frame is displayed): 4-5 seconds
+* Initial average FPS when map has not been changed: 2500 - 2600 FPS
+* Average FPS when map is changed every frame at the beginning: 15 - 20 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2400 - 2500 FPS
+
+### Conclusion
+
+The key is to find the right balance between number of vertices per chunk and number of draw calls being issued. If one of these factors is imbalanced performance suffers significantley.
 
 ## Screenshots
 TODO
@@ -92,6 +352,7 @@ TODO
 * Texturing/Drawing: Currently no texturing is possible. Implementing this in a memory efficient way is not trivial.
 * More multithreading for clipping. Maybe doing this on the GPU directly?
 * Intelligent VBO updating: Currently the entire VBO is updated for each batch, once it changes. Updating this in a more intelligent way may improve performance. Also GPU stalling may become a problem, because of implicit synchronisation.
+* Mobile device optimization
 
 ## Sources
  * Previous experience implementing polygon clipping based methods for 2D maps
