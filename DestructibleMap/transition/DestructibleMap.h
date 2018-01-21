@@ -27,6 +27,8 @@ class DestructibleMap
 	RenderingEngine* rendering_engine_;
 
 	std::vector<DestructibleMapDrawingBatch*> batches_;
+	double start_time_;
+	bool startup_displayed_;
 
 	void load(ClipperLib::Paths poly_tree);
 	void update_batches();

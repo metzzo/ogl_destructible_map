@@ -94,13 +94,22 @@ void RenderingEngine::run()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	double last_time = glfwGetTime();
 	double last_fps_show = last_time;
+
+	double total_fps = 0;
+	int fps_count = 0;
+
 	while (!glfwWindowShouldClose(this->window_))
 	{
 		const double current_time = glfwGetTime();
 		const double delta = current_time - last_time;
+		total_fps += 1 / delta;
+		fps_count++;
+
 		if (current_time - last_fps_show > 0.5) {
-			std::cout << "FPS: " << 1 / delta << " Draw Calls: " << map_draw_calls << std::endl;
+			std::cout << "Avg FPS: " << (total_fps / fps_count) << " Draw Calls: " << map_draw_calls << std::endl;
 			last_fps_show = current_time;
+			fps_count = 0;
+			total_fps = 0;
 		}
 		last_time = current_time;
 

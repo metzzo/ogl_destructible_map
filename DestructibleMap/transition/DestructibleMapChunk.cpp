@@ -288,6 +288,7 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 {
 	this->paths_ = paths;
 	this->vertices_.clear();
+#ifdef ENABLE_MERGING_SUBDIVIDING
 	if (fast)
 	{
 		triangulate_fast(poly_tree, this->vertices_);
@@ -295,6 +296,9 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 	{
 		triangulate(poly_tree, this->vertices_);
 	}
+#else
+	triangulate(poly_tree, this->vertices_);
+#endif
 
 	auto current = this;
 	while (current && !current->mesh_dirty_)

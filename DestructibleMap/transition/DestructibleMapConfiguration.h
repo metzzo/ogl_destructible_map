@@ -42,3 +42,5 @@
 // x=total_points*MAP_POINTS_PER_LEAF_RATIO is the maximum number of points which should be stored in each leaf in the quad tree (if number is greater than x a new leaf is generated).
 #define MAP_POINTS_PER_LEAF_RATIO (0.0005f)
 
+// is subdividing/merging enabled?
+#define ENABLE_MERGING_SUBDIVIDING

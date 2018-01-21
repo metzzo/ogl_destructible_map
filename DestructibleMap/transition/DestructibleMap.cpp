@@ -22,6 +22,7 @@ DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_lea
 	this->quadtree_resource_ = nullptr;
 	this->triangle_area_ratio_ = triangle_area_ratio;
 	this->points_per_leaf_ratio_ = points_per_leaf_ratio;
+	this->startup_displayed_ = false;
 
 	this->map_shader_ = new DestructibleMapShader();
 	map_shader_->init();
@@ -62,6 +63,7 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 
 	this->quad_tree_ = DestructibleMapChunk(nullptr, boundary_begin, boundary_end);
 
+#ifdef ENABLE_MERGING_SUBDIVIDING
 	std::cout << "Generating Point Cloud" << std::endl;
 	generate_point_cloud(this->triangle_area_ratio_, this->vertices_, this->points_);
 
@@ -71,6 +73,7 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 	{
 		this->quad_tree_.insert(point, count);
 	}
+#endif
 
 	std::cout << "Applying Polygon" << std::endl;
 	this->quad_tree_.apply_polygon(paths);
@@ -90,6 +93,7 @@ void DestructibleMap::update_batches()
 
 		for (auto &chunk : dirty_chunks)
 		{
+#ifdef ENABLE_MERGING_SUBDIVIDING
 			auto parent = chunk->parent_;
 			if (parent != nullptr && parent->north_west_ && !parent->north_west_->north_west_ && !parent->north_east_->north_west_ && !parent->south_east_->north_west_ && !parent->south_west_->north_west_)
 			{
@@ -129,7 +133,7 @@ void DestructibleMap::update_batches()
 					}
 				}
 			}
-
+#endif
 			DestructibleMapDrawingBatch *batch = nullptr;
 			if (chunk->get_batch_info())
 			{
@@ -142,11 +146,14 @@ void DestructibleMap::update_batches()
 				}
 			}
 
+#ifdef ENABLE_MERGING_SUBDIVIDING
 			if (chunk->vertices_.size() >= VERTICES_PER_CHUNK)
 			{
 				chunk->subdivide();
 			}
-			else {
+			else
+#endif
+			{
 				if (batch == nullptr) {
 					for (auto &batch_candidate : this->batches_)
 					{
@@ -171,17 +178,22 @@ void DestructibleMap::update_batches()
 	}
 
 	// merge parents
+
+#ifdef ENABLE_MERGING_SUBDIVIDING
 	auto mergeable = this->quad_tree_.get_best_mergeable();
 	if (mergeable != nullptr)
 	{
 		mergeable->merge();
 	}
+#endif
 
 	//std::cout << "Time " << (glfwGetTime() - time) * 1000 << std::endl;
 }
 
 void DestructibleMap::generate_map(int num_rects, int num_circle, int width, int height, int min_size, int max_size)
 {
+	this->start_time_ = glfwGetTime();
+
 	std::cout << "Generate Map" << std::endl;
 
 	ClipperLib::Paths paths;
@@ -245,8 +257,10 @@ void DestructibleMap::draw()
 	glBindVertexArray(this->quadtree_resource_->get_resource_id());
 	glDrawArrays(GL_LINES, 0, this->lines_.size());
 
-	glBindVertexArray(this->point_distribution_resource_->get_resource_id());
-	glDrawArrays(GL_POINTS, 0, this->points_.size());
+	if (glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_3)) {
+		glBindVertexArray(this->point_distribution_resource_->get_resource_id());
+		glDrawArrays(GL_POINTS, 0, this->points_.size());
+	}
 
 	if (glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_1))
 	{
@@ -278,6 +292,12 @@ void DestructibleMap::draw()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glBindVertexArray(0);
+
+	if (!startup_displayed_)
+	{
+		std::cout << "Time from loading until first frame " << (glfwGetTime() - this->start_time_) << std::endl;
+		this->startup_displayed_ = true;
+	}
 }
 
 void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
