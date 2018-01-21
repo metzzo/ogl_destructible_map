@@ -2,7 +2,6 @@
 #include "clipper.hpp"
 #include <iostream>
 #include "poly2tri/sweep/cdt.h"
-#include <glad/glad.h>
 #include "ShaderResource.h"
 #include "MeshResource.h"
 #include <random>

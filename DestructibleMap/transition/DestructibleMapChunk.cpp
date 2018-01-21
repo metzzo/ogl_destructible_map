@@ -3,7 +3,6 @@
 #include <cassert>
 #include "clipper.hpp"
 #include <iostream>
-#include <glad/glad.h>
 #include "ShaderResource.h"
 #include <random>
 #include "DestructibleMap.h"

@@ -1,7 +1,6 @@
 #include "DestructibleMapDrawingBatch.h"
 #include "DestructibleMapChunk.h"
 #include <cassert>
-#include <glad/glad.h>
 #include <iostream>
 
 DestructibleMapDrawingBatch::DestructibleMapDrawingBatch()

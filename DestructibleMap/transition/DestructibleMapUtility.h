@@ -1,16 +1,6 @@
 #pragma once
 #include "DestructibleMap.h"
 #include "clipper.hpp"
-#include <iostream>
-#include "poly2tri/sweep/cdt.h"
-#include <glad/glad.h>
-#include "ShaderResource.h"
-#include "MeshResource.h"
-#include <random>
-#include <glm/gtc/quaternion.hpp>
-#include <GLFW/glfw3.h>
-#include "RenderingEngine.h"
-#include "DestructibleMapDrawingBatch.h"
 
 ClipperLib::Path make_rect(const glm::ivec2 pos, const glm::ivec2 size);
 void get_bounding_box(const ClipperLib::Path& polygon, glm::ivec2& begin, glm::ivec2& end);

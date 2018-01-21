@@ -1,6 +1,4 @@
 #include "MeshResource.h"
-#include <cstring>
-#include <glad/glad.h>
 
 MeshResource::MeshResource(float *vertices, float *normals, float *uvs, const int num_vertices, unsigned int *indices, const int num_indices) {
 	this->vao_ = -1;
