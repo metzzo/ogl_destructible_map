@@ -265,14 +265,25 @@ void DestructibleMap::update_batches()
 			DestructibleMapDrawingBatch *batch = nullptr;
 			if (chunk->get_batch_info())
 			{
-				batch = chunk->get_batch_info()->batch;
-				batch->dealloc_chunk(chunk);
-				if (!batch->is_free(chunk->vertices_.size())) {
-					batch = nullptr;
+				auto info = chunk->get_batch_info();
+				batch = info->batch;
+
+				// resizing is possible
+				if (info->size >= chunk->vertices_.size())
+				{
+					batch->resize_chunk(chunk);
+					continue;
+				}
+				else {
+
+					batch->dealloc_chunk(chunk);
+					if (!batch->is_free(chunk->vertices_.size())) {
+						batch = nullptr;
+					}
 				}
 			}
 
-			if (chunk->vertices_.size() >= VERTICES_PER_BATCH)
+			if (chunk->vertices_.size() + CHUNK_PADDING >= VERTICES_PER_BATCH)
 			{
 				chunk->subdivide();
 			}

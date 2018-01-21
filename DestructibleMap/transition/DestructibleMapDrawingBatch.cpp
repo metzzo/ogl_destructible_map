@@ -9,8 +9,10 @@ DestructibleMapDrawingBatch::DestructibleMapDrawingBatch()
 	this->vao_ = 0;
 	this->vbo_ = 0;
 	this->allocated_ = 0;
-	this->first_modified_ = INT_MAX;
-	this->is_dirty_ = false;
+	this->is_all_dirty_ = false;
+	this->is_sub_dirty_ = false;
+	this->sub_start_offset_ = INT_MAX;
+	this->sub_end_offset_ = INT_MIN;
 	for (auto i = 0; i < VERTICES_PER_BATCH * 2; i++)
 	{
 		this->vertex_data_[i] = 0.0;
@@ -35,11 +37,15 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 
 void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 {
-	if (this->is_dirty_)
+	if (this->is_all_dirty_)
 	{
 		assert(VERTICES_PER_BATCH >= this->allocated_);
 
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * this->allocated_ * 2, this->vertex_data_, GL_STREAM_DRAW);
+
+
+/*
 		if (this->first_modified_ < UPDATE_ALL_THRESHOLD && false)
 		{
 			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
@@ -49,7 +55,7 @@ void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 			const auto start = this->first_modified_ * 2 * sizeof(float);
 			const auto size = (this->allocated_ - this->first_modified_) * 2 * sizeof(float);
 			glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
-		}
+		}*/
 
 
 		// this does not fix the issue, therefore its not because the vertex_data is out of sync
@@ -68,14 +74,42 @@ void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * this->allocated_ * 2, this->vertex_data_, GL_DYNAMIC_DRAW);*/
 
 
-		this->is_dirty_ = false;
-		this->first_modified_ = INT_MAX;
+		this->is_all_dirty_ = false;
+		this->sub_start_offset_ = INT_MAX;
+		this->sub_end_offset_ = INT_MIN;
+		this->is_sub_dirty_ = false;
+	} else	if (this->is_sub_dirty_)
+	{
+		//std::cout << "Just swag" << std::endl;
+		/*for (auto &info : this->infos_)
+		{
+			for (auto i = info->offset; i < info->offset + info->size; i++)
+			{
+				auto vertex = i < info->chunk->vertices_.size() ? info->chunk->vertices_[i - info->offset] : glm::vec2();
+
+				this->vertex_data_[i * 2] = vertex.x;
+				this->vertex_data_[i * 2 + 1] = vertex.y;
+			}
+		}*/
+
+		const auto start = this->sub_start_offset_ * 2 * sizeof(float);
+		const auto size = (this->sub_end_offset_ - this->sub_start_offset_) * 2 * sizeof(float);
+
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
+
+		this->sub_start_offset_ = INT_MAX;
+		this->sub_end_offset_ = INT_MIN;
+		this->is_sub_dirty_ = false;
 	}
 
 	if (this->allocated_ > 0) {
-		map_draw_calls++;
 		glBindVertexArray(this->vao_);
-		glDrawArrays(GL_TRIANGLES, 0, this->allocated_);
+		for (auto &info : this->infos_)
+		{
+			map_draw_calls++;
+			glDrawArrays(GL_TRIANGLES, info->offset, info->size_without_padding);
+		}
 	}
 }
 
@@ -86,7 +120,7 @@ void DestructibleMapDrawingBatch::init()
 	glBindVertexArray(vao_);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_STREAM_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 	glBindVertexArray(0);
@@ -94,7 +128,7 @@ void DestructibleMapDrawingBatch::init()
 
 bool DestructibleMapDrawingBatch::is_free(int for_size) const
 {
-	return (this->allocated_ + for_size) < VERTICES_PER_BATCH;
+	return (this->allocated_ + for_size + CHUNK_PADDING) < VERTICES_PER_BATCH;
 }
 
 void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
@@ -102,7 +136,7 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	assert(this->is_free(chunk->vertices_.size()));
 	assert(chunk->get_batch_info() == nullptr);
 
-	const auto new_vertices_count = chunk->vertices_.size();
+	const auto new_vertices_count = chunk->vertices_.size() + CHUNK_PADDING;
 
 	auto info = new BatchInfo();
 	info->batch = this;
@@ -110,18 +144,19 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	info->batch_index = this->infos_.size();
 	info->offset = this->allocated_;
 	info->size = new_vertices_count;
+	info->size_without_padding = new_vertices_count - CHUNK_PADDING;
 
 	// update array
 	for (auto i = 0; i < new_vertices_count; i++)
 	{
-		const auto vertex = chunk->vertices_[i];
+		const auto vertex = i < chunk->vertices_.size() ? chunk->vertices_[i] : glm::vec2();
 
 		this->vertex_data_[(this->allocated_ + i) * 2] = vertex.x;
 		this->vertex_data_[(this->allocated_ + i) * 2 + 1] = vertex.y;
 	}
 
 	this->allocated_ += new_vertices_count;
-	this->is_dirty_ = true;
+	this->is_all_dirty_ = true;
 	this->infos_.push_back(info);
 	chunk->update_batch(info);
 }
@@ -142,7 +177,7 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 		this->vertex_data_[(i - batch_size) * 2 + 1] = this->vertex_data_[i * 2 + 1];
 	}
 	this->allocated_ -= batch_size;
-	this->is_dirty_ = true;
+	this->is_all_dirty_ = true;
 
 	// reset batch info
 	for (int i = info->batch_index + 1; i < this->infos_.size(); i++)
@@ -155,4 +190,32 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 	delete info;
 
 	chunk->update_batch(nullptr);
+}
+
+void DestructibleMapDrawingBatch::resize_chunk(DestructibleMapChunk* chunk)
+{
+	auto info = chunk->get_batch_info();
+	const auto batch_index = info->offset;
+	const auto batch_size = info->size;
+
+	assert(batch_size >= chunk->vertices_.size());
+	assert(batch_index >= 0 && batch_size >= 0);
+	assert(info->batch == this);
+
+	const auto new_vertices_count = chunk->vertices_.size();
+
+	// update array
+	for (auto i = 0; i < new_vertices_count; i++)
+	{
+		const auto vertex = chunk->vertices_[i];
+
+		this->vertex_data_[(batch_index + i) * 2] = vertex.x;
+		this->vertex_data_[(batch_index + i) * 2 + 1] = vertex.y;
+	}
+	info->size_without_padding = new_vertices_count;
+
+	this->sub_start_offset_ = std::min(this->sub_start_offset_, batch_index);
+	this->sub_end_offset_ = std::max(this->sub_end_offset_, batch_index + int(chunk->vertices_.size()));
+
+	this->is_sub_dirty_ = true;
 }
