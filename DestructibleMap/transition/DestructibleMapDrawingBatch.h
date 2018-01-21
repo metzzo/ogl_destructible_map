@@ -3,10 +3,13 @@
 // TODO: increase these sizes accordingly
 
 // how many vertices are allowed per batch?
-#define VERTICES_PER_BATCH (1024)
+#define VERTICES_PER_BATCH (256)
 
-// if size of changed VBO is greater than threshold * VERTICES_PER_BATCH, just update entire VBO
-#define UPDATE_ALL_THRESHOLD (0.9f)
+// if size of the unchanged VBO vertices is below threshold, just update entire VBO
+#define UPDATE_ALL_THRESHOLD (64)
+
+// how many batches are available on start
+#define NUM_START_BATCHES (32)
 
 #include "DestructibleMapShader.h"
 #include <vector>
@@ -30,7 +33,6 @@ class DestructibleMapDrawingBatch
 
 	float vertex_data_[VERTICES_PER_BATCH * 2];
 	int allocated_;
-	int last_allocated_;
 	bool is_dirty_;
 	std::vector<BatchInfo*> infos_;
 public:
@@ -42,5 +44,7 @@ public:
 	bool is_free(int num_vertices) const;
 	void alloc_chunk(DestructibleMapChunk *chunk);
 	void dealloc_chunk(DestructibleMapChunk *chunk);
+
+	friend DestructibleMap;
 };
 

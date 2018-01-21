@@ -152,11 +152,6 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 					std::cout << "Expected only Holes." << std::endl;
 					continue;
 				}
-				/*if (!child_node->Childs.size())
-				{
-					std::cout << "Expected Nodes with Children." << std::endl;
-					continue;
-				}*/
 
 				if (child_node->Contour.size() >= 3) {
 					const auto hole_polyline = path_to_polyline(child_node);
@@ -259,14 +254,11 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 
 void DestructibleMap::update_batches()
 {
-	auto update_quadtree = false;
 	while (this->quad_tree_.mesh_dirty_)
 	{
 		std::vector<DestructibleMapChunk*> dirty_chunks;
 
 		this->quad_tree_.query_dirty(dirty_chunks);
-
-		//std::cout << "Dirty Chunks: " << dirty_chunks.size() << std::endl;
 
 		for (auto &chunk : dirty_chunks)
 		{
@@ -276,7 +268,6 @@ void DestructibleMap::update_batches()
 				batch = chunk->get_batch_info()->batch;
 				batch->dealloc_chunk(chunk);
 				if (!batch->is_free(chunk->vertices_.size())) {
-					std::cout << "Overflow" << std::endl;
 					batch = nullptr;
 				}
 			}
@@ -284,8 +275,6 @@ void DestructibleMap::update_batches()
 			if (chunk->vertices_.size() >= VERTICES_PER_BATCH)
 			{
 				chunk->subdivide();
-
-				update_quadtree = true;
 			}
 			else {
 				if (batch == nullptr) {
@@ -309,10 +298,6 @@ void DestructibleMap::update_batches()
 				batch->alloc_chunk(chunk);
 			}
 		}
-	}
-	if (update_quadtree)
-	{
-		this->update_quadtree_representation();
 	}
 }
 
@@ -386,6 +371,13 @@ void DestructibleMap::init(RenderingEngine* rendering_engine)
 	this->point_distribution_resource_->init();
 
 	glPointSize(8);
+
+	for (auto i = 0; i < NUM_START_BATCHES; i++)
+	{
+		auto batch = new DestructibleMapDrawingBatch();
+		batch->init();
+		this->batches_.push_back(batch);
+	}
 }
 
 void DestructibleMap::draw()
@@ -416,7 +408,18 @@ void DestructibleMap::draw()
 
 	for (auto &batch : batches_)
 	{
+		
+		for (auto &info : batch->infos_)
+		{
+			if (info->chunk != nullptr && info->chunk->highlighted_)
+			{
+				this->map_shader_->set_base_color(glm::vec3(1.0, 1.0, 0.0));
+			}
+		}
+
 		batch->draw(this->map_shader_);
+
+		this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
 	}
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -449,14 +452,13 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 
 		if (result_poly_tree.Total() == 0)
 		{
-			std::cout << "Remove Leave" << std::endl;
-			leave->remove();
+			std::cout << "Remove Leave Candidate " << std::endl;
+			//leave->remove();
 		}
-		else {
-			ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
-			leave->apply_polygon(result_paths);
-		}
+		leave->apply_polygon(result_paths);
+		
 	}
 }
 

@@ -56,6 +56,11 @@ void DestructibleMapController::update(double delta)
 		}
 	}
 
+	if (glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_2))
+	{
+		map_->update_quadtree_representation();
+	}
+
 	const auto sx = glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_A) - glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_D);
 	const auto sy = glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_S) - glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_W);
 	const auto zoom = glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_Q) - glfwGetKey(this->rendering_engine_->get_window(), GLFW_KEY_E);

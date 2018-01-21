@@ -9,7 +9,7 @@ DestructibleMapDrawingBatch::DestructibleMapDrawingBatch()
 	this->vao_ = 0;
 	this->vbo_ = 0;
 	this->allocated_ = 0;
-	this->last_allocated_ = 0;
+	this->first_modified_ = INT_MAX;
 	this->is_dirty_ = false;
 	for (auto i = 0; i < VERTICES_PER_BATCH * 2; i++)
 	{
@@ -37,29 +37,23 @@ void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 {
 	if (this->is_dirty_)
 	{
-		// if VBO has changed => get changed data
-		/*auto start = 0, size = 0;
-		if (this->last_allocated_ < this->allocated_)
-		{
-			start = this->last_allocated_ * 2 * sizeof(float);
-			size = (this->allocated_ - this->last_allocated_) * 2 * sizeof(float);
-		} else
-		{
-			start = this->allocated_ * 2 * sizeof(float);
-			size = (this->last_allocated_ - this->allocated_) * 2 * sizeof(float);
-		}
+		assert(VERTICES_PER_BATCH >= this->allocated_);
+
 		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
-		if (size >= VERTICES_PER_BATCH * UPDATE_ALL_THRESHOLD * 2 * sizeof(float))
+		if (this->first_modified_ < UPDATE_ALL_THRESHOLD && false)
 		{
 			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * VERTICES_PER_BATCH * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
 		} else
 		{
+			std::cout << this->first_modified_ << " " << this->allocated_ << std::endl;
+			const auto start = this->first_modified_ * 2 * sizeof(float);
+			const auto size = (this->allocated_ - this->first_modified_) * 2 * sizeof(float);
 			glBufferSubData(GL_ARRAY_BUFFER, start, size, this->vertex_data_);
-		}*/
-		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		}
+
 
 		// this does not fix the issue, therefore its not because the vertex_data is out of sync
-		for (auto &info : this->infos_)
+		/*for (auto &info : this->infos_)
 		{
 			for (auto i = info->offset; i < info->offset + info->size; i++)
 			{
@@ -67,28 +61,21 @@ void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 
 				this->vertex_data_[i * 2] = vertex.x;
 				this->vertex_data_[i * 2 + 1] = vertex.y;
-			} 
-		}
-
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * this->allocated_ * 2, this->vertex_data_, GL_DYNAMIC_DRAW);
-		this->is_dirty_ = false;
-		this->last_allocated_ = this->allocated_;
-	}
-
-	if (this->allocated_ > 0) {
-		for (auto &info : this->infos_)
-		{
-			if (info->chunk->highlighted_)
-			{
-				shader->set_base_color(glm::vec3(1.0, 1.0, 0.0));
 			}
 		}
 
+		glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * this->allocated_ * 2, this->vertex_data_, GL_DYNAMIC_DRAW);*/
+
+
+		this->is_dirty_ = false;
+		this->first_modified_ = INT_MAX;
+	}
+
+	if (this->allocated_ > 0) {
 		map_draw_calls++;
 		glBindVertexArray(this->vao_);
-		glDrawArrays(GL_TRIANGLES, 0, this->allocated_ * 2);
-
-		shader->set_base_color(glm::vec3(0.0, 1.0, 0.0));
+		glDrawArrays(GL_TRIANGLES, 0, this->allocated_);
 	}
 }
 
