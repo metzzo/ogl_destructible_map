@@ -32,6 +32,7 @@ class DestructibleMapChunk
 	BatchInfo *batch_info_;
 	bool highlighted_;
 	ClipperLib::Path quad_;
+	int mergeable_count_;
 
 	void constructor();
 public:
@@ -45,6 +46,7 @@ public:
 	bool insert(const glm::vec2& point, const int max_points);
 
 	void subdivide();
+	void merge();
 
 	void apply_polygon(const ClipperLib::Paths &input_paths);
 
@@ -53,8 +55,6 @@ public:
 	DestructibleMapChunk *query_chunk(glm::vec2 point);
 
 	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
-
-	void remove();
 
 	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
 
@@ -74,6 +74,8 @@ public:
 	{
 		this->highlighted_ = highlight;
 	}
+
+	DestructibleMapChunk *get_best_mergeable() const;
 
 
 	friend DestructibleMap;

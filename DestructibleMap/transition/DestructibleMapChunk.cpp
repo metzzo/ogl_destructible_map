@@ -23,6 +23,7 @@ void DestructibleMapChunk::constructor()
 	this->parent_ = nullptr;
 	this->mesh_dirty_ = false;
 	this->batch_info_ = nullptr;
+	this->mergeable_count_ = false;
 
 }
 
@@ -40,6 +41,8 @@ DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const g
 		quad_pos,
 		quad_size
 	);
+
+	this->vertices_.reserve(VERTICES_PER_CHUNK * 2);
 }
 
 DestructibleMapChunk::DestructibleMapChunk()
@@ -49,9 +52,9 @@ DestructibleMapChunk::DestructibleMapChunk()
 
 DestructibleMapChunk::~DestructibleMapChunk()
 {
-	if (this->batch_info_)
+	if (this->batch_info_ != nullptr)
 	{
-		this->batch_info_->chunk = nullptr;
+		this->batch_info_->batch->dealloc_chunk(this);
 	}
 
 	if (this->north_west_)
@@ -160,6 +163,68 @@ void DestructibleMapChunk::subdivide()
 
 	this->paths_.clear();
 	this->vertices_.clear();
+
+	// do not need to merge
+	if (this->mergeable_count_)
+	{
+		this->parent_->north_west_->mergeable_count_--;
+		this->parent_->north_east_->mergeable_count_--;
+		this->parent_->south_west_->mergeable_count_--;
+		this->parent_->south_east_->mergeable_count_--;
+		auto current = this->parent_;
+		while (current)
+		{
+			current->mergeable_count_--;
+			current = current->parent_;
+		}
+	}
+}
+
+void DestructibleMapChunk::merge()
+{
+	std::cout << "Merge" << std::endl;
+	assert(this->north_west_);
+
+	if (this->north_west_->paths_.size() + this->north_east_->paths_.size() + this->south_west_->paths_.size() + this->south_east_->paths_.size() > 0) {
+		ClipperLib::PolyTree result_poly_tree;
+		ClipperLib::Clipper c;
+		c.StrictlySimple(true);
+		c.AddPaths(this->north_west_->paths_, ClipperLib::ptSubject, true);
+		c.AddPaths(this->north_east_->paths_, ClipperLib::ptSubject, true);
+		c.AddPaths(this->south_west_->paths_, ClipperLib::ptSubject, true);
+		c.AddPaths(this->south_east_->paths_, ClipperLib::ptSubject, true);
+
+		if (!c.Execute(ClipperLib::ctUnion, result_poly_tree, ClipperLib::pftNonZero))
+		{
+			std::cout << "Could not create Polygon Tree" << std::endl;
+		}
+		
+		ClipperLib::Paths result_paths;
+		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
+
+		this->set_paths(result_paths, result_poly_tree);
+	}
+
+	// remove children
+	delete this->north_west_;
+	delete this->north_east_;
+	delete this->south_west_;
+	delete this->south_east_;
+
+	this->north_west_ = nullptr;
+	this->north_east_ = nullptr;
+	this->south_west_ = nullptr;
+	this->south_east_ = nullptr;
+
+	// decrease merge counter
+	auto current = this;
+	while (current)
+	{
+		current->mergeable_count_--;
+		current = current->parent_;
+	}
+
+	assert(this->mergeable_count_ == 0);
 }
 
 
@@ -235,33 +300,6 @@ void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const Clipp
 	}
 }
 
-void DestructibleMapChunk::remove()
-{
-	// TODO: proper removing
-	if (this->batch_info_ != nullptr)
-	{
-		this->batch_info_->batch->dealloc_chunk(this);
-	}
-
-	const auto parent = this->parent_;
-	if (parent &&
-		parent->north_west_->vertices_.size() == 0 &&
-		parent->north_east_->vertices_.size() == 0 &&
-		parent->south_west_->vertices_.size() == 0 &&
-		parent->south_east_->vertices_.size() == 0)
-	{
-		delete parent->north_west_;
-		delete parent->north_east_;
-		delete parent->south_west_;
-		delete parent->south_east_;
-
-		parent->north_west_ = nullptr;
-		parent->north_east_ = nullptr;
-		parent->south_west_ = nullptr;
-		parent->south_east_ = nullptr;
-	}
-}
-
 void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks)
 {
 	if (!this->mesh_dirty_)
@@ -286,6 +324,43 @@ void DestructibleMapChunk::query_dirty(std::vector<DestructibleMapChunk*>& dirty
 void DestructibleMapChunk::update_batch(BatchInfo* info)
 {
 	this->batch_info_ = info;
+}
+
+DestructibleMapChunk* DestructibleMapChunk::get_best_mergeable() const
+{
+	if (this->mergeable_count_ == 0)
+	{
+		return nullptr;
+	}
+
+	if (this->north_west_)
+	{
+		DestructibleMapChunk *directions[] = {
+			this->north_west_,
+			this->north_east_,
+			this->south_west_,
+			this->south_east_
+		};
+		
+		auto best_match = 0;
+		DestructibleMapChunk *selected = nullptr;
+		for (auto i = 0; i < 4; i++)
+		{
+			auto &dir = directions[i];
+			if (best_match < dir->mergeable_count_)
+			{
+				best_match = dir->mergeable_count_;
+				selected = dir;
+			}
+		}
+		assert(selected != nullptr);
+
+		return selected->get_best_mergeable();
+	}
+	else
+	{
+		return this->parent_;
+	}
 }
 
 DestructibleMapChunk* DestructibleMapChunk::query_chunk(glm::vec2 point)

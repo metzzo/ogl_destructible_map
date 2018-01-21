@@ -4,6 +4,8 @@
 
 #define SCALE_FACTOR (1000.0f)
 #define SCALE_FACTOR_INV (1.0f/SCALE_FACTOR)
+#define TRIANGULATION_BUFFER (VERTICES_PER_CHUNK*3)
+
 
 class DestructibleMapShader;
 class MeshResource;
@@ -31,6 +33,7 @@ class DestructibleMap
 
 	void load(ClipperLib::Paths poly_tree);
 	void update_batches();
+	void merge_chunks();
 public:
 
 	explicit DestructibleMap(float triangle_area_ratio = 0.025f, float points_per_leaf_ratio = 0.0005f);

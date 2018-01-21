@@ -65,14 +65,16 @@ ClipperLib::Path make_circle(const glm::ivec2 pos, const float radius, const int
 	return circle;
 }
 
-std::vector<p2t::Point*>* path_to_polyline(ClipperLib::PolyNode *node)
+void path_to_polyline(std::vector<p2t::Point*> &polyline, ClipperLib::PolyNode *node, p2t::Point *points, int &num_points)
 {
-	auto polyline = new std::vector<p2t::Point*>(node->Contour.size());
 	for (auto j = 0; j < node->Contour.size(); j++)
 	{
-		(*polyline)[j] = new p2t::Point(double(node->Contour[j].X), double(node->Contour[j].Y));
+		assert(num_points < TRIANGULATION_BUFFER);
+
+		points[num_points] = p2t::Point(double(node->Contour[j].X), double(node->Contour[j].Y));
+		polyline.push_back(&points[num_points]);
+		num_points++;
 	}
-	return polyline;
 }
 
 void remove_polyline(std::vector<p2t::Point*>* polyline)
@@ -140,16 +142,24 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 		return;
 	}
 
+	p2t::Point points[TRIANGULATION_BUFFER];
+	std::vector<p2t::Point*> polyline;
+	polyline.reserve(TRIANGULATION_BUFFER);
+	std::vector<p2t::Point*> hole_polyline;
+	polyline.reserve(TRIANGULATION_BUFFER);
+
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
 		if (!current_node->IsHole())
 		{
 			// convert to Poly2Tri Polygon
-			std::vector<std::vector<p2t::Point*> *> holes_registry;
-			const auto polyline = path_to_polyline(current_node);
 
-			p2t::CDT* cdt = new p2t::CDT(*polyline);
+			int num_points = 0;
+			polyline.clear();
+			path_to_polyline(polyline, current_node, points, num_points);
+
+			p2t::CDT* cdt = new p2t::CDT(polyline);
 
 			for (auto &child_node : current_node->Childs)
 			{
@@ -160,9 +170,9 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 				}
 
 				if (child_node->Contour.size() >= 3) {
-					const auto hole_polyline = path_to_polyline(child_node);
-					cdt->AddHole(*hole_polyline);
-					holes_registry.push_back(hole_polyline);
+					hole_polyline.clear();
+					path_to_polyline(hole_polyline, child_node, points, num_points);
+					cdt->AddHole(hole_polyline);
 				}
 
 			}
@@ -184,11 +194,6 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 				vertices.push_back(v2);
 			}
 
-			remove_polyline(polyline);
-			for (auto &hole : holes_registry)
-			{
-				remove_polyline(hole);
-			}
 			delete cdt;
 		}
 
@@ -264,11 +269,52 @@ void DestructibleMap::update_batches()
 	while (this->quad_tree_.mesh_dirty_)
 	{
 		std::vector<DestructibleMapChunk*> dirty_chunks;
+		std::vector<DestructibleMapChunk*> merge_chunks;
 
 		this->quad_tree_.query_dirty(dirty_chunks);
 
 		for (auto &chunk : dirty_chunks)
 		{
+			auto parent = chunk->parent_;
+			if (parent != nullptr && parent->north_west_ && !parent->north_west_->north_west_ && !parent->north_east_->north_west_ && !parent->south_east_->north_west_ && !parent->south_west_->north_west_)
+			{
+				auto total_vertices = parent->north_west_->vertices_.size() + parent->north_east_->vertices_.size() + parent->south_west_->vertices_.size() + parent->south_east_->vertices_.size();
+
+				if (parent->mergeable_count_ == 0 && total_vertices < VERTICES_PER_CHUNK) {
+					// chunk may be merged with parent
+
+					// => increase mergeable count of leaves
+					parent->north_west_->mergeable_count_++;
+					parent->north_east_->mergeable_count_++;
+					parent->south_west_->mergeable_count_++;
+					parent->south_east_->mergeable_count_++;
+
+					// => increase mergeable count to root
+					auto current = parent;
+					while (current)
+					{
+						current->mergeable_count_++;
+						current = current->parent_;
+					}
+				} else if (parent->mergeable_count_ > 0 && total_vertices >= VERTICES_PER_CHUNK)
+				{
+					// chunk was previously marked as being mergable, but it got some vertices, so it is NOT mergeable
+
+					parent->north_west_->mergeable_count_--;
+					parent->north_east_->mergeable_count_--;
+					parent->south_west_->mergeable_count_--;
+					parent->south_east_->mergeable_count_--;
+
+					// => decrease mergeable count to root
+					auto current = parent;
+					while (current)
+					{
+						current->mergeable_count_--;
+						current = current->parent_;
+					}
+				}
+			}
+
 			DestructibleMapDrawingBatch *batch = nullptr;
 			if (chunk->get_batch_info())
 			{
@@ -308,6 +354,14 @@ void DestructibleMap::update_batches()
 			}
 		}
 	}
+
+	// merge parents
+	auto mergeable = this->quad_tree_.get_best_mergeable();
+	if (mergeable != nullptr)
+	{
+		mergeable->merge();
+	}
+
 	//std::cout << "Time " << (glfwGetTime() - time) * 1000 << std::endl;
 }
 
