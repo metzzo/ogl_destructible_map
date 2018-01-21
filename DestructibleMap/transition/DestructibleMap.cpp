@@ -12,6 +12,7 @@
 #include "DestructibleMapShader.h"
 #include "RenderingEngine.h"
 #include "DestructibleMapDrawingBatch.h"
+#include <omp.h>
 
 float triangle_area(const float d_x0, const float d_y0, const float d_x1, const float d_y1, const float d_x2, const float d_y2)
 {
@@ -142,7 +143,7 @@ void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
-		if (!current_node->IsHole()) //  && current_node->Contour.size() >= 3
+		if (!current_node->IsHole())
 		{
 			// convert to Poly2Tri Polygon
 			std::vector<std::vector<p2t::Point*> *> holes_registry;
@@ -259,6 +260,7 @@ void DestructibleMap::load(ClipperLib::Paths paths)
 
 void DestructibleMap::update_batches()
 {
+	auto time = glfwGetTime();
 	while (this->quad_tree_.mesh_dirty_)
 	{
 		std::vector<DestructibleMapChunk*> dirty_chunks;
@@ -306,6 +308,7 @@ void DestructibleMap::update_batches()
 			}
 		}
 	}
+	//std::cout << "Time " << (glfwGetTime() - time) * 1000 << std::endl;
 }
 
 DestructibleMap::DestructibleMap(float triangle_area_ratio, float points_per_leaf_ratio)
@@ -412,7 +415,7 @@ void DestructibleMap::draw()
 	}
 
 	this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
-
+	auto time = glfwGetTime();
 	for (auto &batch : batches_)
 	{
 		
@@ -428,6 +431,7 @@ void DestructibleMap::draw()
 
 		this->map_shader_->set_base_color(glm::vec3(0.0, 1.0, 0.0));
 	}
+	//std::cout << "Time: " << (glfwGetTime() - time) * 1000 << std::endl;
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -444,8 +448,11 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 	std::vector<DestructibleMapChunk*> affected_leaves;
 	this->quad_tree_.query_range(glm::vec2(begin) * SCALE_FACTOR_INV, glm::vec2(end) * SCALE_FACTOR_INV, affected_leaves);
 
-	for (auto &leave : affected_leaves)
+#pragma omp parallel for
+	for (auto i = 0; i < affected_leaves.size(); i++)
 	{
+		auto &leave = affected_leaves[i];
+
 		ClipperLib::Paths path_inside_bounds;
 		ClipperLib::Clipper c;
 		c.StrictlySimple(true);
@@ -475,14 +482,15 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 
 		if (result_poly_tree.Total() == 0)
 		{
-			std::cout << "Remove Leave Candidate " << std::endl;
+			//std::cout << "Remove Leave Candidate " << std::endl;
 			//leave->remove();
 		}
 		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
 		leave->set_paths(result_paths, result_poly_tree);
 	}
-	std::cout << "Time " << (glfwGetTime() - time)*1000.0f << std::endl;
+
+	//std::cout << "Time: " << (glfwGetTime() - time) * 1000 << std::endl;
 }
 
 

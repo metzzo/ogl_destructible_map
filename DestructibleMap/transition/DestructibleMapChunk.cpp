@@ -144,11 +144,19 @@ void DestructibleMapChunk::subdivide()
 	this->south_west_ = new DestructibleMapChunk(this, this->begin_ + size_y, this->begin_ + size_y + size);
 	this->south_east_ = new DestructibleMapChunk(this, this->begin_ + size, this->end_);
 
+	DestructibleMapChunk *directions[] = {
+		this->north_west_,
+		this->north_east_,
+		this->south_west_,
+		this->south_east_
+	};
 
-	this->north_west_->apply_polygon(this->paths_);
-	this->north_east_->apply_polygon(this->paths_);
-	this->south_west_->apply_polygon(this->paths_);
-	this->south_east_->apply_polygon(this->paths_);
+
+#pragma omp parallel for
+	for (auto i = 0; i < 4; i++)
+	{
+		directions[i]->apply_polygon(this->paths_);
+	}
 
 	this->paths_.clear();
 	this->vertices_.clear();

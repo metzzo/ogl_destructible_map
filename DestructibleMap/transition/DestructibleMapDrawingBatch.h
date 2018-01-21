@@ -3,13 +3,13 @@
 // TODO: increase these sizes accordingly
 
 // how many vertices are allowed per batch?
-#define VERTICES_PER_BATCH (512)
+#define VERTICES_PER_BATCH (4096)
 
 // how many batches are available on start
 #define NUM_START_BATCHES (64)
 
 // how many vertices per chunk should be allowed
-#define VERTICES_PER_CHUNK (128)
+#define VERTICES_PER_CHUNK (64)
 
 #include "DestructibleMapShader.h"
 #include <vector>
@@ -33,11 +33,8 @@ class DestructibleMapDrawingBatch
 
 	float vertex_data_[VERTICES_PER_BATCH * 2];
 	int allocated_;
-	bool is_all_dirty_;
+	bool is_dirty_;
 	std::vector<BatchInfo*> infos_;
-	bool is_sub_dirty_;
-	int sub_start_offset_;
-	int sub_end_offset_;
 public:
 	DestructibleMapDrawingBatch();
 	~DestructibleMapDrawingBatch();
