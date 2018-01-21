@@ -151,10 +151,11 @@ This configuration was evaluated using trial'n error - there may still be more p
 ```
 </details>
 
-* Map construction (time until first frame is displayed): 5-6 seconds
-* Initial average FPS when map has not been changed: 1900 - 2000 FPS
-* Average FPS when map is changed every frame at the beginning: 120 - 150 FPS
-* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 500 - 600 FPS
+* Map construction (time until first frame is displayed): 0.15 seconds
+* Number of draw calls after map construction: 3
+* Initial average FPS when map has not been changed: 4000 - 4400 FPS
+* Average FPS when map is changed every frame at the beginning: 3600 - 4000 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2000 - 2200 FPS
 
 ### Disable quadtree (just 1 chunk total)
 This configuration disables the quadtree as a whole and has the entire map polygon in just one chunk all time. The archtecture requires that a chunk must always fit in a batch, so the batch size is also increased accordingly. Some triangulation optimizations are also not possible in this configuration. As expected this maximizes render time (since just 1 drawing batch has to be issued), but has horrible map modification performance
@@ -163,16 +164,14 @@ This configuration disables the quadtree as a whole and has the entire map polyg
 <summary>Defines</summary>
 
 ```
-#pragma once
-
 // how many vertices are allowed per batch?
-#define VERTICES_PER_BATCH (4096*4)
+#define VERTICES_PER_BATCH (4096*16)
 
 // how many batches are available on start
 #define NUM_START_BATCHES (64)
 
 // how many vertices per chunk should be allowed
-#define VERTICES_PER_CHUNK (4096*4)
+#define VERTICES_PER_CHUNK (4096*16)
 
 // factor from real coordinates to Clipper coordinates
 #define SCALE_FACTOR (1000.0f)
@@ -214,10 +213,11 @@ This configuration disables the quadtree as a whole and has the entire map polyg
 ```
 </details>
 
-* Map construction (time until first frame is displayed): 3 seconds
-* Initial average FPS when map has not been changed: 2500 - 2700 FPS
-* Average FPS when map is changed every frame at the beginning: 2-3 FPS
-* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2500 - 2700 FPS
+* Map construction (time until first frame is displayed): 0.1 seconds
+* Number of draw calls after map construction: 1
+* Initial average FPS when map has not been changed: 4700 - 4800 FPS
+* Average FPS when map is changed every frame at the beginning: 90-100 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 4400 - 4500 FPS
 
 ### Low vertices per batch
 
@@ -274,10 +274,11 @@ This configuration has a significantly low vertex per batch threshold, which cau
 ```
 </details>
 
-* Map construction (time until first frame is displayed): 5-6 seconds
-* Initial average FPS when map has not been changed: 1300 - 1400 FPS
-* Average FPS when map is changed every frame at the beginning: 120 - 140 FPS
-* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 270 - 290 FPS
+* Map construction (time until first frame is displayed): 0.1 seconds
+* Initial average FPS when map has not been changed: 3900 - 4000 FPS
+* Number of draw calls after map construction: 3
+* Average FPS when map is changed every frame at the beginning: 3000 - 3100 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2100 - 2200 FPS
 
 ### High vertices per chunk
 This configuration causes very big polygons in the chunks, which result in poor map modification performance (but not as poor as the 1 chunk for the entire map case). This causes a quadtree with low depth.
@@ -333,10 +334,11 @@ This configuration causes very big polygons in the chunks, which result in poor 
 ```
 </details>
 
-* Map construction (time until first frame is displayed): 4-5 seconds
-* Initial average FPS when map has not been changed: 2500 - 2600 FPS
-* Average FPS when map is changed every frame at the beginning: 15 - 20 FPS
-* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 2400 - 2500 FPS
+* Map construction (time until first frame is displayed): 0.1 seconds
+* Initial average FPS when map has not been changed: 4100 - 4300 FPS
+* Number of draw calls after map construction: 3
+* Average FPS when map is changed every frame at the beginning: 900 - 1400 FPS
+* Average FPS after drawing and erasing parts of the map randomly for 30 seconds: 3000 - 3200 FPS
 
 ### Conclusion
 
