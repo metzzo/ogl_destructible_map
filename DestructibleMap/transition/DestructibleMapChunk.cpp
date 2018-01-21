@@ -33,6 +33,13 @@ DestructibleMapChunk::DestructibleMapChunk(DestructibleMapChunk *parent, const g
 	this->begin_ = begin;
 	this->end_ = end;
 	this->parent_ = parent;
+
+	const glm::ivec2 quad_pos = glm::ivec2(this->begin_* SCALE_FACTOR);
+	const glm::ivec2 quad_size = glm::ivec2((this->end_ - this->begin_) * SCALE_FACTOR);
+	this->quad_ = make_rect(
+		quad_pos,
+		quad_size
+	);
 }
 
 DestructibleMapChunk::DestructibleMapChunk()
@@ -150,17 +157,11 @@ void DestructibleMapChunk::subdivide()
 
 void DestructibleMapChunk::apply_polygon(const ClipperLib::Paths &input_paths)
 {
-	const glm::ivec2 quad_pos = glm::ivec2(this->begin_* SCALE_FACTOR);
-	const glm::ivec2 quad_size = glm::ivec2((this->end_ - this->begin_) * SCALE_FACTOR);
-	const ClipperLib::Path quad = make_rect(
-		quad_pos,
-		quad_size
-	);
 	ClipperLib::PolyTree result_poly_tree;
 	ClipperLib::Clipper c;
 	c.StrictlySimple(true);
 	c.AddPaths(input_paths, ClipperLib::ptSubject, true);
-	c.AddPath(quad, ClipperLib::ptClip, true);
+	c.AddPath(this->quad_, ClipperLib::ptClip, true);
 
 	if (!c.Execute(ClipperLib::ctIntersection, result_poly_tree, ClipperLib::pftNonZero))
 	{

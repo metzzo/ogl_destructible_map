@@ -11,8 +11,6 @@ class DestructibleMap;
 class RenderingEngine;
 class DestructibleMapDrawingBatch;
 
-#define VERTICES_PER_CHUNK (256)
-
 class DestructibleMapChunk
 {
 	std::vector<glm::vec2> points_;
@@ -33,6 +31,7 @@ class DestructibleMapChunk
 
 	BatchInfo *batch_info_;
 	bool highlighted_;
+	ClipperLib::Path quad_;
 
 	void constructor();
 public:

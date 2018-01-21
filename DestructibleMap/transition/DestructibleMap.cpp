@@ -134,6 +134,11 @@ void generate_point_cloud(float triangle_area_ratio, const std::vector<glm::vec2
 
 void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices)
 {
+	if (poly_tree.Total() == 0)
+	{
+		return;
+	}
+
 	auto current_node = poly_tree.GetFirst()->Parent;
 	while (current_node != nullptr)
 	{
@@ -268,22 +273,13 @@ void DestructibleMap::update_batches()
 				auto info = chunk->get_batch_info();
 				batch = info->batch;
 
-				// resizing is possible
-				if (info->size >= chunk->vertices_.size())
-				{
-					batch->resize_chunk(chunk);
-					continue;
-				}
-				else {
-
-					batch->dealloc_chunk(chunk);
-					if (!batch->is_free(chunk->vertices_.size())) {
-						batch = nullptr;
-					}
+				batch->dealloc_chunk(chunk);
+				if (!batch->is_free(chunk->vertices_.size())) {
+					batch = nullptr;
 				}
 			}
 
-			if (chunk->vertices_.size() + CHUNK_PADDING >= VERTICES_PER_BATCH)
+			if (chunk->vertices_.size() >= VERTICES_PER_CHUNK)
 			{
 				chunk->subdivide();
 			}
@@ -440,6 +436,7 @@ void DestructibleMap::draw()
 
 void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, ClipperLib::ClipType clip_type)
 {
+	double time = glfwGetTime();
 	glm::ivec2 begin, end;
 
 	get_bounding_box(polygon, begin, end);
@@ -449,11 +446,26 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 
 	for (auto &leave : affected_leaves)
 	{
-		ClipperLib::PolyTree result_poly_tree;
+		ClipperLib::Paths path_inside_bounds;
 		ClipperLib::Clipper c;
 		c.StrictlySimple(true);
+		c.AddPath(polygon, ClipperLib::ptSubject, true);
+		c.AddPath(leave->quad_, ClipperLib::ptClip, true);
+
+		if (!c.Execute(ClipperLib::ctIntersection, path_inside_bounds, ClipperLib::pftNonZero))
+		{
+			std::cout << "Could not create Polygon Tree" << std::endl;
+		}
+
+		if (path_inside_bounds.size() == 0)
+		{
+			continue;
+		}
+
+		ClipperLib::PolyTree result_poly_tree;
+		c.Clear();
 		c.AddPaths(leave->paths_, ClipperLib::ptSubject, true);
-		c.AddPath(polygon, ClipperLib::ptClip, true);
+		c.AddPaths(path_inside_bounds, ClipperLib::ptClip, true);
 		if (!c.Execute(clip_type, result_poly_tree, ClipperLib::pftNonZero))
 		{
 			std::cout << "Could not create Polygon Tree" << std::endl;
@@ -468,9 +480,9 @@ void DestructibleMap::apply_polygon_operation(const ClipperLib::Path polygon, Cl
 		}
 		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
-		leave->apply_polygon(result_paths);
-		
+		leave->set_paths(result_paths, result_poly_tree);
 	}
+	std::cout << "Time " << (glfwGetTime() - time)*1000.0f << std::endl;
 }
 
 

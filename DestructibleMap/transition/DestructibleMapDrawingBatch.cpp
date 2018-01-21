@@ -37,7 +37,7 @@ DestructibleMapDrawingBatch::~DestructibleMapDrawingBatch()
 
 void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 {
-	if (this->is_all_dirty_)
+	if (this->is_all_dirty_ || this->is_sub_dirty_)
 	{
 		assert(VERTICES_PER_BATCH >= this->allocated_);
 
@@ -105,11 +105,13 @@ void DestructibleMapDrawingBatch::draw(DestructibleMapShader *shader)
 
 	if (this->allocated_ > 0) {
 		glBindVertexArray(this->vao_);
-		for (auto &info : this->infos_)
+		glDrawArrays(GL_TRIANGLES, 0, this->allocated_);
+		map_draw_calls++;
+		/*for (auto &info : this->infos_)
 		{
 			map_draw_calls++;
 			glDrawArrays(GL_TRIANGLES, info->offset, info->size_without_padding);
-		}
+		}*/
 	}
 }
 
@@ -128,7 +130,7 @@ void DestructibleMapDrawingBatch::init()
 
 bool DestructibleMapDrawingBatch::is_free(int for_size) const
 {
-	return (this->allocated_ + for_size + CHUNK_PADDING) < VERTICES_PER_BATCH;
+	return (this->allocated_ + for_size) < VERTICES_PER_BATCH;
 }
 
 void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
@@ -136,7 +138,7 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	assert(this->is_free(chunk->vertices_.size()));
 	assert(chunk->get_batch_info() == nullptr);
 
-	const auto new_vertices_count = chunk->vertices_.size() + CHUNK_PADDING;
+	const auto new_vertices_count = chunk->vertices_.size();
 
 	auto info = new BatchInfo();
 	info->batch = this;
@@ -144,12 +146,11 @@ void DestructibleMapDrawingBatch::alloc_chunk(DestructibleMapChunk *chunk)
 	info->batch_index = this->infos_.size();
 	info->offset = this->allocated_;
 	info->size = new_vertices_count;
-	info->size_without_padding = new_vertices_count - CHUNK_PADDING;
 
 	// update array
 	for (auto i = 0; i < new_vertices_count; i++)
 	{
-		const auto vertex = i < chunk->vertices_.size() ? chunk->vertices_[i] : glm::vec2();
+		const auto vertex = chunk->vertices_[i];
 
 		this->vertex_data_[(this->allocated_ + i) * 2] = vertex.x;
 		this->vertex_data_[(this->allocated_ + i) * 2 + 1] = vertex.y;
@@ -190,32 +191,4 @@ void DestructibleMapDrawingBatch::dealloc_chunk(DestructibleMapChunk* chunk)
 	delete info;
 
 	chunk->update_batch(nullptr);
-}
-
-void DestructibleMapDrawingBatch::resize_chunk(DestructibleMapChunk* chunk)
-{
-	auto info = chunk->get_batch_info();
-	const auto batch_index = info->offset;
-	const auto batch_size = info->size;
-
-	assert(batch_size >= chunk->vertices_.size());
-	assert(batch_index >= 0 && batch_size >= 0);
-	assert(info->batch == this);
-
-	const auto new_vertices_count = chunk->vertices_.size();
-
-	// update array
-	for (auto i = 0; i < new_vertices_count; i++)
-	{
-		const auto vertex = chunk->vertices_[i];
-
-		this->vertex_data_[(batch_index + i) * 2] = vertex.x;
-		this->vertex_data_[(batch_index + i) * 2 + 1] = vertex.y;
-	}
-	info->size_without_padding = new_vertices_count;
-
-	this->sub_start_offset_ = std::min(this->sub_start_offset_, batch_index);
-	this->sub_end_offset_ = std::max(this->sub_end_offset_, batch_index + int(chunk->vertices_.size()));
-
-	this->is_sub_dirty_ = true;
 }
