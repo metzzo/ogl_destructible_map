@@ -343,7 +343,19 @@ This configuration causes very big polygons in the chunks, which result in poor 
 The key is to find the right balance between number of vertices per chunk and number of draw calls being issued. If one of these factors is imbalanced performance suffers significantley.
 
 ## Screenshots
-TODO
+![Initial Map](screenshots/screenshot1.png)
+
+Map without modifications
+
+
+![Map with modifications](screenshots/screenshot2.png)
+Map with some modifications
+
+
+![Map with modifications Wireframe](screenshots/screenshot3.png)
+
+Map with some modifications in wireframe mode
+
 
 ## Possible Improvements
 * A custom triangulation and polygon clipping library may improve speed significantly.
