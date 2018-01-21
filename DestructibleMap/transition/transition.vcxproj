@@ -160,6 +160,7 @@
     <ClInclude Include="DestructibleMapController.h" />
     <ClInclude Include="DestructibleMap.h" />
     <ClInclude Include="DestructibleMapDrawingBatch.h" />
+    <ClInclude Include="DestructibleMapUtility.h" />
     <ClInclude Include="GLDebugContext.h" />
     <ClInclude Include="IResource.h" />
     <ClInclude Include="DestructibleMapShader.h" />
@@ -181,6 +182,7 @@
     <ClCompile Include="DestructibleMapController.cpp" />
     <ClCompile Include="DestructibleMap.cpp" />
     <ClCompile Include="DestructibleMapDrawingBatch.cpp" />
+    <ClCompile Include="DestructibleMapUtility.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="DestructibleMapShader.cpp" />
     <ClCompile Include="MeshResource.cpp" />

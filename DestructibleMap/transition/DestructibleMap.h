@@ -33,7 +33,6 @@ class DestructibleMap
 
 	void load(ClipperLib::Paths poly_tree);
 	void update_batches();
-	void merge_chunks();
 public:
 
 	explicit DestructibleMap(float triangle_area_ratio = 0.025f, float points_per_leaf_ratio = 0.0005f);

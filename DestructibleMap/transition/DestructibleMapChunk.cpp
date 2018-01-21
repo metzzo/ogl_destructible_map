@@ -8,11 +8,10 @@
 #include <random>
 #include "DestructibleMap.h"
 #include "DestructibleMapDrawingBatch.h"
+#include "DestructibleMapUtility.h"
 
 int map_draw_calls;
 
-
-void triangulate(const ClipperLib::PolyTree &poly_tree, std::vector<glm::vec2> &vertices);
 
 void DestructibleMapChunk::constructor()
 {
@@ -201,7 +200,7 @@ void DestructibleMapChunk::merge()
 		ClipperLib::Paths result_paths;
 		ClipperLib::PolyTreeToPaths(result_poly_tree, result_paths);
 
-		this->set_paths(result_paths, result_poly_tree);
+		this->set_paths(result_paths, result_poly_tree, true);
 	}
 
 	// remove children
@@ -258,7 +257,7 @@ void DestructibleMapChunk::apply_polygon(const ClipperLib::Paths &input_paths)
 	}
 	else
 	{
-		this->set_paths(result_paths, result_poly_tree);
+		this->set_paths(result_paths, result_poly_tree, false);
 	}
 }
 
@@ -285,11 +284,17 @@ void DestructibleMapChunk::query_range(const glm::vec2& query_begin, const glm::
 	}
 }
 
-void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree)
+void DestructibleMapChunk::set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree, bool fast)
 {
 	this->paths_ = paths;
 	this->vertices_.clear();
-	triangulate(poly_tree, this->vertices_);
+	if (fast)
+	{
+		triangulate_fast(poly_tree, this->vertices_);
+	} else
+	{
+		triangulate(poly_tree, this->vertices_);
+	}
 
 	auto current = this;
 	while (current && !current->mesh_dirty_)

@@ -99,6 +99,9 @@
     <ClInclude Include="DestructibleMapDrawingBatch.h">
       <Filter>Headerdateien\DestructibleMap</Filter>
     </ClInclude>
+    <ClInclude Include="DestructibleMapUtility.h">
+      <Filter>Headerdateien\DestructibleMap</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RenderingEngine.cpp">
@@ -150,6 +153,9 @@
       <Filter>Quelldateien\DestructibleMap</Filter>
     </ClCompile>
     <ClCompile Include="DestructibleMapDrawingBatch.cpp">
+      <Filter>Quelldateien\DestructibleMap</Filter>
+    </ClCompile>
+    <ClCompile Include="DestructibleMapUtility.cpp">
       <Filter>Quelldateien\DestructibleMap</Filter>
     </ClCompile>
   </ItemGroup>

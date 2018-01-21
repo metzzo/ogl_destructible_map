@@ -54,7 +54,7 @@ public:
 
 	DestructibleMapChunk *query_chunk(glm::vec2 point);
 
-	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree);
+	void set_paths(const ClipperLib::Paths &paths, const ClipperLib::PolyTree &poly_tree, bool fast);
 
 	void query_dirty(std::vector<DestructibleMapChunk*>& dirty_chunks);
 
